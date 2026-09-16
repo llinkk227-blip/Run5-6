@@ -1,40 +1,22 @@
 package com.example.runintervals;
 
-import android.Manifest;
 import android.app.Activity;
-import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
-import android.graphics.Color;
 import android.os.Bundle;
-import android.os.Handler;
-import android.text.InputType;
-import android.view.Gravity;
-import android.widget.*;
-
-import com.google.android.gms.location.*;
-import org.json.JSONArray;
-import org.json.JSONObject;
-import org.osmdroid.config.Configuration;
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
-import org.osmdroid.util.GeoPoint;
-import org.osmdroid.views.MapView;
-import org.osmdroid.views.overlay.Polyline;
-
-import java.text.SimpleDateFormat;
-import java.util.*;
+import android.widget.TextView;
 
 public class MainActivity extends Activity {
 
-    private static final int LOCATION_PERMISSION = 1001;
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
 
-    private LinearLayout root;
-    private TextView timeText, distanceText, paceText, averagePaceText, caloriesText;
+        TextView text = new TextView(this);
+        text.setText("RunIntervals");
+        text.setTextSize(24);
 
-    private MapView map;
-    private Polyline trackLine;
-
-    private FusedLocationProviderClient locationClient;
-    private LocationCallback locationCallback;
+        setContentView(text);
+    }
+}    private LocationCallback locationCallback;
 
     private boolean running = false;
     private boolean paused = false;

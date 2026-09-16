@@ -2,6 +2,7 @@ package com.example.runintervals;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
@@ -30,14 +31,17 @@ public class MainActivity extends Activity {
     private LocationCallback locationCallback;
 
     private MapView map;
+
     private TextView timeText;
     private TextView distanceText;
     private TextView paceText;
+    private TextView caloriesText;
     private TextView statusText;
 
     private Button startButton;
     private Button pauseButton;
     private Button finishButton;
+    private Button settingsButton;
 
     private boolean running = false;
     private boolean paused = false;
@@ -48,6 +52,8 @@ public class MainActivity extends Activity {
 
     private float distance = 0;
     private Location lastLocation;
+
+    private double weight = 60;
 
     private final Handler handler = new Handler();
 
@@ -93,14 +99,14 @@ public class MainActivity extends Activity {
 
         map = new MapView(this);
 
-        LinearLayout.LayoutParams mapParams =
+        root.addView(
+                map,
                 new LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.MATCH_PARENT,
                         0,
                         1
-                );
-
-        root.addView(map, mapParams);
+                )
+        );
 
         LinearLayout info = new LinearLayout(this);
         info.setOrientation(LinearLayout.VERTICAL);
@@ -122,270 +128,12 @@ public class MainActivity extends Activity {
         paceText.setText("Темп: --:-- мин/км");
         paceText.setTextSize(20);
 
+        caloriesText = new TextView(this);
+        caloriesText.setText("Калории: 0 ккал");
+        caloriesText.setTextSize(20);
+
         info.addView(statusText);
         info.addView(timeText);
         info.addView(distanceText);
         info.addView(paceText);
-
-        LinearLayout buttons = new LinearLayout(this);
-
-        startButton = new Button(this);
-        startButton.setText("СТАРТ");
-
-        pauseButton = new Button(this);
-        pauseButton.setText("ПАУЗА");
-        pauseButton.setEnabled(false);
-
-        finishButton = new Button(this);
-        finishButton.setText("ФИНИШ");
-        finishButton.setEnabled(false);
-
-        buttons.addView(
-                startButton,
-                new LinearLayout.LayoutParams(0, -2, 1)
-        );
-
-        buttons.addView(
-                pauseButton,
-                new LinearLayout.LayoutParams(0, -2, 1)
-        );
-
-        buttons.addView(
-                finishButton,
-                new LinearLayout.LayoutParams(0, -2, 1)
-        );
-
-        info.addView(buttons);
-
-        root.addView(info);
-
-        setContentView(root);
-
-        startButton.setOnClickListener(v -> startRun());
-        pauseButton.setOnClickListener(v -> togglePause());
-        finishButton.setOnClickListener(v -> finishRun());
-
-        map.setMultiTouchControls(true);
-
-        GeoPoint startPoint = new GeoPoint(44.7866, 20.4489);
-        map.getController().setZoom(14.0);
-        map.getController().setCenter(startPoint);
-    }
-
-    private void createLocationCallback() {
-
-        locationCallback = new LocationCallback() {
-
-            @Override
-            public void onLocationResult(LocationResult result) {
-
-                if (result == null) {
-                    return;
-                }
-
-                for (Location location : result.getLocations()) {
-
-                    if (!running || paused) {
-                        continue;
-                    }
-
-                    if (lastLocation != null) {
-
-                        float delta =
-                                lastLocation.distanceTo(location);
-
-                        if (delta > 1) {
-                            distance += delta;
-                        }
-                    }
-
-                    lastLocation = location;
-
-                    updateMap(location);
-                    updateStats();
-                }
-            }
-        };
-    }
-
-    private void startRun() {
-
-        running = true;
-        paused = false;
-
-        distance = 0;
-        lastLocation = null;
-        pausedDuration = 0;
-
-        startTime = System.currentTimeMillis();
-
-        statusText.setText("Пробежка идёт");
-
-        startButton.setEnabled(false);
-        pauseButton.setEnabled(true);
-        finishButton.setEnabled(true);
-
-        startLocationUpdates();
-
-        handler.post(timerRunnable);
-    }
-
-    private void togglePause() {
-
-        if (!running) {
-            return;
-        }
-
-        if (!paused) {
-
-            paused = true;
-            pauseStart = System.currentTimeMillis();
-
-            statusText.setText("Пауза");
-            pauseButton.setText("ПРОДОЛЖИТЬ");
-
-        } else {
-
-            paused = false;
-
-            pausedDuration +=
-                    System.currentTimeMillis() - pauseStart;
-
-            statusText.setText("Пробежка идёт");
-            pauseButton.setText("ПАУЗА");
-
-            handler.post(timerRunnable);
-        }
-    }
-
-    private void finishRun() {
-
-        running = false;
-        paused = false;
-
-        stopLocationUpdates();
-
-        statusText.setText("Пробежка завершена");
-
-        startButton.setEnabled(true);
-        pauseButton.setEnabled(false);
-        finishButton.setEnabled(false);
-
-        pauseButton.setText("ПАУЗА");
-
-        updateStats();
-    }
-
-    private void startLocationUpdates() {
-
-        if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
-            return;
-        }
-
-        LocationRequest request =
-                new LocationRequest.Builder(
-                        Priority.PRIORITY_HIGH_ACCURACY,
-                        2000
-                )
-                        .setMinUpdateIntervalMillis(1000)
-                        .build();
-
-        locationClient.requestLocationUpdates(
-                request,
-                locationCallback,
-                getMainLooper()
-        );
-    }
-
-    private void stopLocationUpdates() {
-
-        locationClient.removeLocationUpdates(locationCallback);
-    }
-
-    private void updateMap(Location location) {
-
-        GeoPoint point =
-                new GeoPoint(
-                        location.getLatitude(),
-                        location.getLongitude()
-                );
-
-        map.getController().setCenter(point);
-
-        Marker marker = new Marker(map);
-        marker.setPosition(point);
-        marker.setTitle("Вы здесь");
-
-        map.getOverlays().clear();
-        map.getOverlays().add(marker);
-
-        map.invalidate();
-    }
-
-    private void updateStats() {
-
-        long elapsed =
-                System.currentTimeMillis()
-                        - startTime
-                        - pausedDuration;
-
-        if (elapsed < 0) {
-            elapsed = 0;
-        }
-
-        long seconds = elapsed / 1000;
-
-        long minutes = seconds / 60;
-        long secs = seconds % 60;
-
-        timeText.setText(
-                String.format(
-                        Locale.getDefault(),
-                        "Время: %02d:%02d",
-                        minutes,
-                        secs
-                )
-        );
-
-        double km = distance / 1000.0;
-
-        distanceText.setText(
-                String.format(
-                        Locale.getDefault(),
-                        "Дистанция: %.2f км",
-                        km
-                )
-        );
-
-        if (km > 0.01 && seconds > 0) {
-
-            double paceSeconds =
-                    seconds / km;
-
-            int paceMin =
-                    (int) (paceSeconds / 60);
-
-            int paceSec =
-                    (int) (paceSeconds % 60);
-
-            paceText.setText(
-                    String.format(
-                            Locale.getDefault(),
-                            "Темп: %02d:%02d мин/км",
-                            paceMin,
-                            paceSec
-                    )
-            );
-        }
-    }
-
-    @Override
-    protected void onDestroy() {
-
-        super.onDestroy();
-
-        stopLocationUpdates();
-        handler.removeCallbacks(timerRunnable);
-    }
-            }
+        info.add

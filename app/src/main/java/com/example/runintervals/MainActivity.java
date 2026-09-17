@@ -78,6 +78,14 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        Configuration.getInstance().load(
+                getApplicationContext(),
+                getSharedPreferences(
+                        "osmdroid",
+                        MODE_PRIVATE
+                )
+        );
+
         Configuration.getInstance().setUserAgentValue(
                 getPackageName()
         );

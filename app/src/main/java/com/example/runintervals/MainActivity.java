@@ -150,8 +150,6 @@ public class MainActivity extends Activity {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(Color.rgb(248, 249, 250));
 
-        // ---------- ЗАГОЛОВОК ----------
-
         TextView title =
                 createText("RUN INTERVALS", 24, true);
 
@@ -165,8 +163,6 @@ public class MainActivity extends Activity {
                         LinearLayout.LayoutParams.WRAP_CONTENT
                 )
         );
-
-        // ---------- КАРТА ----------
 
         map = new MapView(this);
         map.setMultiTouchControls(true);
@@ -186,8 +182,6 @@ public class MainActivity extends Activity {
         map.getController().setZoom(14.0);
         map.getController().setCenter(startPoint);
 
-        // ---------- НИЖНЯЯ ЧАСТЬ ----------
-
         ScrollView scrollView = new ScrollView(this);
 
         LinearLayout info = new LinearLayout(this);
@@ -198,42 +192,31 @@ public class MainActivity extends Activity {
                 createText("Готов к пробежке", 18, true);
 
         statusText.setGravity(Gravity.CENTER);
-
         info.addView(statusText);
 
-        // Время
         timeText =
                 createText("Время\n00:00", 22, true);
 
         timeText.setGravity(Gravity.CENTER);
-
         info.addView(timeText);
 
-        // Дистанция
         distanceText =
                 createText("Дистанция\n0.00 км", 22, true);
 
         distanceText.setGravity(Gravity.CENTER);
-
         info.addView(distanceText);
 
-        // Темп
         paceText =
                 createText("Темп\n--:-- мин/км", 22, true);
 
         paceText.setGravity(Gravity.CENTER);
-
         info.addView(paceText);
 
-        // Калории
         caloriesText =
                 createText("Калории\n0 ккал", 22, true);
 
         caloriesText.setGravity(Gravity.CENTER);
-
         info.addView(caloriesText);
-
-        // ---------- ОСНОВНЫЕ КНОПКИ ----------
 
         LinearLayout buttons =
                 new LinearLayout(this);
@@ -277,8 +260,6 @@ public class MainActivity extends Activity {
 
         info.addView(buttons);
 
-        // ---------- ИСТОРИЯ ----------
-
         historyButton =
                 createButton("📋  ИСТОРИЯ");
 
@@ -291,8 +272,6 @@ public class MainActivity extends Activity {
                         LinearLayout.LayoutParams.WRAP_CONTENT
                 )
         );
-
-        // ---------- НАСТРОЙКИ ----------
 
         settingsButton =
                 createButton("⚙  НАСТРОЙКИ");
@@ -319,8 +298,6 @@ public class MainActivity extends Activity {
         );
 
         setContentView(root);
-
-        // ---------- ОБРАБОТЧИКИ ----------
 
         startButton.setOnClickListener(
                 v -> startRun()
@@ -503,6 +480,18 @@ public class MainActivity extends Activity {
         pauseButton.setText("Ⅱ ПАУЗА");
 
         updateStats();
+
+        Intent intent =
+                new Intent(
+                        MainActivity.this,
+                        ResultActivity.class
+                );
+
+        intent.putExtra("distance", km);
+        intent.putExtra("time", seconds);
+        intent.putExtra("calories", calories);
+
+        startActivity(intent);
     }
 
     private void startLocationUpdates() {

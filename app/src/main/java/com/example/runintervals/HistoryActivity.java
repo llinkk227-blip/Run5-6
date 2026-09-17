@@ -13,20 +13,34 @@ import android.widget.TextView;
 
 public class HistoryActivity extends Activity {
 
-    private LinearLayout list;
-    private RunHistory runHistory;
-
     private final int BLUE =
             Color.rgb(30, 120, 200);
 
-    private final int LIGHT_BLUE =
+    private final int DARK_BLUE =
+            Color.rgb(18, 78, 130);
+
+    private final int CARD_BLUE =
             Color.rgb(70, 150, 220);
+
+    private final int WHITE =
+            Color.WHITE;
+
+    private LinearLayout list;
+    private RunHistory runHistory;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        runHistory = new RunHistory(this);
+        runHistory =
+                new RunHistory(this);
+
+        createInterface();
+
+        loadHistory();
+    }
+
+    private void createInterface() {
 
         LinearLayout root =
                 new LinearLayout(this);
@@ -38,25 +52,69 @@ public class HistoryActivity extends Activity {
         root.setBackgroundColor(BLUE);
 
         root.setPadding(
-                20, 25, 20, 20
+                16,
+                20,
+                16,
+                15
         );
 
+        // Заголовок
         TextView title =
                 new TextView(this);
 
-        title.setText("ИСТОРИЯ ПРОБЕЖЕК");
-        title.setTextSize(26);
-        title.setTextColor(Color.WHITE);
+        title.setText("ИСТОРИЯ");
+        title.setTextSize(28);
+        title.setTextColor(WHITE);
 
         title.setTypeface(
                 Typeface.DEFAULT,
                 Typeface.BOLD
         );
 
-        title.setGravity(Gravity.CENTER);
+        title.setGravity(
+                Gravity.CENTER
+        );
+
+        title.setPadding(
+                0,
+                5,
+                0,
+                5
+        );
 
         root.addView(title);
 
+        TextView subtitle =
+                new TextView(this);
+
+        subtitle.setText(
+                "Твои тренировки"
+        );
+
+        subtitle.setTextSize(15);
+        subtitle.setTextColor(
+                Color.argb(
+                        220,
+                        255,
+                        255,
+                        255
+                )
+        );
+
+        subtitle.setGravity(
+                Gravity.CENTER
+        );
+
+        subtitle.setPadding(
+                0,
+                0,
+                0,
+                15
+        );
+
+        root.addView(subtitle);
+
+        // Кнопка очистки
         Button clearButton =
                 new Button(this);
 
@@ -64,10 +122,33 @@ public class HistoryActivity extends Activity {
                 "🗑 Очистить историю"
         );
 
+        clearButton.setTextColor(WHITE);
+        clearButton.setTextSize(14);
         clearButton.setAllCaps(false);
 
-        root.addView(clearButton);
+        clearButton.setBackgroundColor(
+                DARK_BLUE
+        );
 
+        LinearLayout.LayoutParams clearParams =
+                new LinearLayout.LayoutParams(
+                        -1,
+                        48
+                );
+
+        clearParams.setMargins(
+                0,
+                0,
+                0,
+                12
+        );
+
+        root.addView(
+                clearButton,
+                clearParams
+        );
+
+        // Список
         ScrollView scroll =
                 new ScrollView(this);
 
@@ -79,10 +160,11 @@ public class HistoryActivity extends Activity {
         );
 
         list.setPadding(
-                0, 10, 0, 30
+                0,
+                0,
+                0,
+                20
         );
-
-        list.setBackgroundColor(BLUE);
 
         scroll.addView(list);
 
@@ -96,8 +178,6 @@ public class HistoryActivity extends Activity {
         );
 
         setContentView(root);
-
-        loadHistory();
 
         clearButton.setOnClickListener(
                 v -> confirmClear()
@@ -117,18 +197,21 @@ public class HistoryActivity extends Activity {
                     new TextView(this);
 
             empty.setText(
-                    "Пробежек пока нет."
+                    "🏃\n\nПробежек пока нет"
             );
 
-            empty.setTextSize(19);
-            empty.setTextColor(Color.WHITE);
+            empty.setTextSize(20);
+            empty.setTextColor(WHITE);
 
             empty.setGravity(
                     Gravity.CENTER
             );
 
             empty.setPadding(
-                    10, 50, 10, 10
+                    20,
+                    80,
+                    20,
+                    20
             );
 
             list.addView(empty);
@@ -139,7 +222,8 @@ public class HistoryActivity extends Activity {
         String[] records =
                 data.split("\\n\\n");
 
-        for (String record : records) {
+        for (String record :
+                records) {
 
             if (record.trim().isEmpty()) {
                 continue;
@@ -149,8 +233,13 @@ public class HistoryActivity extends Activity {
         }
     }
 
-    private void addRunCard(String record) {
+    private void addRunCard(
+            String record) {
 
+        String[] lines =
+                record.split("\\n");
+
+        // Карточка тренировки
         LinearLayout card =
                 new LinearLayout(this);
 
@@ -158,48 +247,479 @@ public class HistoryActivity extends Activity {
                 LinearLayout.VERTICAL
         );
 
-        card.setPadding(
-                20, 18, 20, 18
-        );
-
         card.setBackgroundColor(
-                LIGHT_BLUE
+                CARD_BLUE
         );
 
-        TextView text =
-                new TextView(this);
+        card.setPadding(
+                18,
+                16,
+                18,
+                16
+        );
 
-        text.setText(record);
-        text.setTextSize(18);
-        text.setTextColor(Color.WHITE);
+        // Дата
+        if (lines.length > 0) {
 
-        text.setLineSpacing(
+            TextView date =
+                    new TextView(this);
+
+            date.setText(
+                    lines[0]
+            );
+
+            date.setTextSize(14);
+            date.setTextColor(
+                    Color.argb(
+                            220,
+                            255,
+                            255,
+                            255
+                    )
+            );
+
+            date.setTypeface(
+                    Typeface.DEFAULT,
+                    Typeface.BOLD
+            );
+
+            card.addView(date);
+        }
+
+        // Главные показатели
+        LinearLayout metrics =
+                new LinearLayout(this);
+
+        metrics.setOrientation(
+                LinearLayout.HORIZONTAL
+        );
+
+        metrics.setPadding(
                 0,
-                1.15f
+                12,
+                0,
+                10
         );
 
-        card.addView(text);
-
-        LinearLayout.LayoutParams params =
-                new LinearLayout.LayoutParams(
-                        -1,
-                        LinearLayout.LayoutParams.WRAP_CONTENT
+        String distance =
+                extractValue(
+                        record,
+                        "📍",
+                        "км"
                 );
 
-        params.setMargins(
-                0, 0, 0, 10
+        String time =
+                extractValue(
+                        record,
+                        "⏱",
+                        null
+                );
+
+        String pace =
+                extractValue(
+                        record,
+                        "🏃",
+                        "мин/км"
+                );
+
+        String calories =
+                extractValue(
+                        record,
+                        "🔥",
+                        "ккал"
+                );
+
+        metrics.addView(
+                createMetric(
+                        "ДИСТАНЦИЯ",
+                        distance + " км"
+                ),
+                metricParams()
+        );
+
+        metrics.addView(
+                createMetric(
+                        "ВРЕМЯ",
+                        time
+                ),
+                metricParams()
+        );
+
+        metrics.addView(
+                createMetric(
+                        "ПЕЙС",
+                        pace
+                ),
+                metricParams()
+        );
+
+        metrics.addView(
+                createMetric(
+                        "ККАЛ",
+                        calories
+                ),
+                metricParams()
+        );
+
+        card.addView(metrics);
+
+        // Разделитель
+        TextView divider =
+                new TextView(this);
+
+        divider.setBackgroundColor(
+                Color.argb(
+                        100,
+                        255,
+                        255,
+                        255
+                )
+        );
+
+        card.addView(
+                divider,
+                new LinearLayout.LayoutParams(
+                        -1,
+                        1
+                )
+        );
+
+        // Заголовок интервалов
+        boolean hasIntervals =
+                record.contains(
+                        "──── ИНТЕРВАЛЫ ────"
+                );
+
+        if (hasIntervals) {
+
+            TextView intervalHeader =
+                    new TextView(this);
+
+            intervalHeader.setText(
+                    "ОТРЕЗКИ"
+            );
+
+            intervalHeader.setTextSize(14);
+            intervalHeader.setTextColor(WHITE);
+
+            intervalHeader.setTypeface(
+                    Typeface.DEFAULT,
+                    Typeface.BOLD
+            );
+
+            intervalHeader.setPadding(
+                    0,
+                    12,
+                    0,
+                    8
+            );
+
+            card.addView(
+                    intervalHeader
+            );
+
+            addIntervals(
+                    card,
+                    record
+            );
+        }
+
+        LinearLayout.LayoutParams cardParams =
+                new LinearLayout.LayoutParams(
+                        -1,
+                        -2
+                );
+
+        cardParams.setMargins(
+                0,
+                0,
+                0,
+                14
         );
 
         list.addView(
                 card,
-                params
+                cardParams
         );
+    }
+
+    private void addIntervals(
+            LinearLayout card,
+            String record) {
+
+        String[] lines =
+                record.split("\\n");
+
+        boolean readingIntervals =
+                false;
+
+        LinearLayout intervalContainer =
+                new LinearLayout(this);
+
+        intervalContainer.setOrientation(
+                LinearLayout.VERTICAL
+        );
+
+        for (int i = 0;
+             i < lines.length;
+             i++) {
+
+            String line =
+                    lines[i].trim();
+
+            if (line.contains(
+                    "──── ИНТЕРВАЛЫ ────")) {
+
+                readingIntervals = true;
+                continue;
+            }
+
+            if (!readingIntervals ||
+                    line.isEmpty()) {
+
+                continue;
+            }
+
+            // Каждая запись начинается
+            // со строки "Интервал N"
+            if (line.startsWith(
+                    "Интервал ")) {
+
+                LinearLayout interval =
+                        new LinearLayout(this);
+
+                interval.setOrientation(
+                        LinearLayout.VERTICAL
+                );
+
+                interval.setPadding(
+                        12,
+                        9,
+                        12,
+                        9
+                );
+
+                interval.setBackgroundColor(
+                        Color.argb(
+                                80,
+                                255,
+                                255,
+                                255
+                        )
+                );
+
+                TextView intervalTitle =
+                        new TextView(this);
+
+                intervalTitle.setText(
+                        line
+                );
+
+                intervalTitle.setTextSize(15);
+                intervalTitle.setTextColor(WHITE);
+
+                intervalTitle.setTypeface(
+                        Typeface.DEFAULT,
+                        Typeface.BOLD
+                );
+
+                interval.addView(
+                        intervalTitle
+                );
+
+                int j = i + 1;
+
+                while (j < lines.length &&
+                        !lines[j]
+                                .trim()
+                                .startsWith(
+                                        "Интервал "
+                                )) {
+
+                    String detail =
+                            lines[j].trim();
+
+                    if (!detail.isEmpty()) {
+
+                        TextView detailText =
+                                new TextView(this);
+
+                        detailText.setText(
+                                detail
+                        );
+
+                        detailText.setTextSize(14);
+                        detailText.setTextColor(
+                                Color.argb(
+                                        235,
+                                        255,
+                                        255,
+                                        255
+                                )
+                        );
+
+                        detailText.setPadding(
+                                0,
+                                2,
+                                0,
+                                2
+                        );
+
+                        interval.addView(
+                                detailText
+                        );
+                    }
+
+                    j++;
+                }
+
+                LinearLayout.LayoutParams intervalParams =
+                        new LinearLayout.LayoutParams(
+                                -1,
+                                -2
+                        );
+
+                intervalParams.setMargins(
+                        0,
+                        3,
+                        0,
+                        3
+                );
+
+                intervalContainer.addView(
+                        interval,
+                        intervalParams
+                );
+
+                i = j - 1;
+            }
+        }
+
+        card.addView(
+                intervalContainer
+        );
+    }
+
+    private LinearLayout createMetric(
+            String title,
+            String value) {
+
+        LinearLayout box =
+                new LinearLayout(this);
+
+        box.setOrientation(
+                LinearLayout.VERTICAL
+        );
+
+        box.setGravity(
+                Gravity.CENTER
+        );
+
+        TextView titleText =
+                new TextView(this);
+
+        titleText.setText(title);
+        titleText.setTextSize(10);
+        titleText.setTextColor(
+                Color.argb(
+                        210,
+                        255,
+                        255,
+                        255
+                )
+        );
+
+        titleText.setGravity(
+                Gravity.CENTER
+        );
+
+        box.addView(titleText);
+
+        TextView valueText =
+                new TextView(this);
+
+        valueText.setText(value);
+        valueText.setTextSize(16);
+        valueText.setTextColor(WHITE);
+
+        valueText.setTypeface(
+                Typeface.DEFAULT,
+                Typeface.BOLD
+        );
+
+        valueText.setGravity(
+                Gravity.CENTER
+        );
+
+        valueText.setPadding(
+                0,
+                3,
+                0,
+                0
+        );
+
+        box.addView(valueText);
+
+        return box;
+    }
+
+    private LinearLayout.LayoutParams metricParams() {
+
+        return new LinearLayout.LayoutParams(
+                0,
+                -2,
+                1
+        );
+    }
+
+    private String extractValue(
+            String record,
+            String icon,
+            String ending) {
+
+        String[] lines =
+                record.split("\\n");
+
+        for (String line : lines) {
+
+            if (line.contains(icon)) {
+
+                String result =
+                        line.substring(
+                                line.indexOf(icon)
+                                        + icon.length()
+                        ).trim();
+
+                if (ending != null) {
+
+                    int index =
+                            result.indexOf(
+                                    ending
+                            );
+
+                    if (index >= 0) {
+
+                        result =
+                                result.substring(
+                                        0,
+                                        index
+                                ).trim();
+                    }
+                }
+
+                return result;
+            }
+        }
+
+        return "--";
     }
 
     private void confirmClear() {
 
         new AlertDialog.Builder(this)
-                .setTitle("Очистить историю?")
+                .setTitle(
+                        "Очистить историю?"
+                )
                 .setMessage(
                         "Все сохранённые пробежки будут удалены."
                 )

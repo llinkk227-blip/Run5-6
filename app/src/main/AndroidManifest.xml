@@ -11,6 +11,11 @@
         android:allowBackup="true">
 
         <activity
+            android:name=".MapActivity"
+            android:screenOrientation="portrait"
+            android:exported="false" />
+
+        <activity
             android:name=".SettingsActivity"
             android:exported="false" />
 

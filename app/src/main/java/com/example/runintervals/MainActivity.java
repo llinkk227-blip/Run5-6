@@ -106,9 +106,8 @@ public class MainActivity extends Activity {
 
         /*
          * Настройка osmdroid.
-         * Используем приватный каталог приложения,
-         * чтобы не зависеть от доступа к общей памяти телефона.
          */
+
         File basePath =
                 new File(
                         getFilesDir(),
@@ -138,11 +137,12 @@ public class MainActivity extends Activity {
         );
 
         /*
-         * ВАЖНО:
-         * OSM требует понятный User-Agent приложения.
+         * Идентификация приложения
+         * при обращении к серверу карт.
          */
+
         Configuration.getInstance().setUserAgentValue(
-                "RunIntervals/2.0"
+                "RunIntervals/2.0 (Android; contact: runintervals@example.com)"
         );
 
         Configuration.getInstance().load(
@@ -162,7 +162,7 @@ public class MainActivity extends Activity {
         );
 
         Configuration.getInstance().setUserAgentValue(
-                "RunIntervals/2.0"
+                "RunIntervals/2.0 (Android; contact: runintervals@example.com)"
         );
 
         locationClient =
@@ -302,6 +302,7 @@ public class MainActivity extends Activity {
         /*
          * КАРТА
          */
+
         map = new MapView(this);
 
         map.setTileSource(
@@ -342,6 +343,7 @@ public class MainActivity extends Activity {
         /*
          * Подпись OpenStreetMap.
          */
+
         TextView mapCopyright =
                 new TextView(this);
 
@@ -351,6 +353,7 @@ public class MainActivity extends Activity {
 
         mapCopyright.setTextSize(11);
         mapCopyright.setTextColor(Color.DKGRAY);
+
         mapCopyright.setBackgroundColor(
                 Color.argb(
                         190,
@@ -706,6 +709,7 @@ public class MainActivity extends Activity {
                                     location;
 
                             updateMap(location);
+
                             updateStats();
                         }
                     }
@@ -967,11 +971,15 @@ public class MainActivity extends Activity {
 
         marker.setPosition(point);
 
-        marker.setTitle("Вы здесь");
+        marker.setTitle(
+                "Вы здесь"
+        );
 
         map.getOverlays().clear();
 
-        map.getOverlays().add(marker);
+        map.getOverlays().add(
+                marker
+        );
 
         map.invalidate();
     }

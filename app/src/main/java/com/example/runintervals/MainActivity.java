@@ -102,7 +102,6 @@ public class MainActivity extends Activity {
     private Button intervalButton;
 
     private SharedPreferences settings;
-
     private SharedPreferences routePreferences;
 
     private int paceWindowSeconds = 10;
@@ -112,6 +111,7 @@ public class MainActivity extends Activity {
 
     private final Runnable timerRunnable =
             new Runnable() {
+
                 @Override
                 public void run() {
 
@@ -1180,6 +1180,7 @@ public class MainActivity extends Activity {
             totalDistanceMeters += delta;
 
             if (intervalRunning) {
+
                 intervalDistanceMeters += delta;
             }
 
@@ -1354,6 +1355,7 @@ public class MainActivity extends Activity {
                 );
 
         if (intervalRunning) {
+
             finishCurrentInterval();
         }
 
@@ -1395,7 +1397,11 @@ public class MainActivity extends Activity {
             );
         }
 
+        // Если пользователь нажал ФИНИШ,
+        // пока интервал ещё выполняется,
+        // автоматически завершаем его.
         if (intervalRunning) {
+
             finishCurrentInterval();
         }
 
@@ -1450,8 +1456,11 @@ public class MainActivity extends Activity {
         }
 
         if (!intervalRunning) {
+
             startInterval();
+
         } else {
+
             finishCurrentInterval();
         }
     }
@@ -1497,10 +1506,27 @@ public class MainActivity extends Activity {
         double distanceKm =
                 intervalDistanceMeters / 1000.0;
 
+        // Если GPS не успел дать дистанцию,
+        // интервал не записываем как 0.00 км.
+        if (distanceKm <= 0) {
+
+            intervalRunning = false;
+            intervalDistanceMeters = 0;
+            intervalStartTime = 0;
+
+            intervalPaceValue.setText("—");
+
+            intervalButton.setText(
+                    "НАЧАТЬ ИНТЕРВАЛ"
+            );
+
+            updateIntervalsText();
+
+            return;
+        }
+
         double paceSeconds =
-                distanceKm > 0
-                        ? intervalTime / distanceKm
-                        : 0;
+                intervalTime / distanceKm;
 
         String intervalText =
                 String.format(
@@ -1534,9 +1560,18 @@ public class MainActivity extends Activity {
 
         if (savedIntervals.isEmpty()) {
 
-            intervalsText.setText(
-                    "Интервалы ещё не завершены"
-            );
+            if (intervalRunning) {
+
+                intervalsText.setText(
+                        "Интервал выполняется..."
+                );
+
+            } else {
+
+                intervalsText.setText(
+                        "Интервалы ещё не завершены"
+                );
+            }
 
             return;
         }
@@ -1661,6 +1696,10 @@ public class MainActivity extends Activity {
                 intervalPaceValue.setText(
                         formatPace(intervalPace)
                 );
+
+            } else {
+
+                intervalPaceValue.setText("—");
             }
         }
     }

@@ -7,11 +7,12 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.location.Location;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.Looper;
 import android.view.Gravity;
-import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -56,7 +57,8 @@ public class MainActivity extends Activity {
     private static final int RED =
             Color.rgb(229, 72, 77);
 
-    private static final int LOCATION_PERMISSION_REQUEST = 1001;
+    private static final int LOCATION_PERMISSION_REQUEST =
+            1001;
 
     private FusedLocationProviderClient fusedLocationClient;
 
@@ -72,13 +74,11 @@ public class MainActivity extends Activity {
 
     private boolean workoutRunning = false;
 
-    private boolean workoutFinished = false;
+    private boolean intervalRunning = false;
 
     private double intervalDistanceMeters = 0;
 
     private long intervalStartTime = 0;
-
-    private boolean intervalRunning = false;
 
     private final List<String> savedIntervals =
             new ArrayList<>();
@@ -97,10 +97,32 @@ public class MainActivity extends Activity {
     private Button startButton;
     private Button stopButton;
     private Button finishButton;
+    private Button intervalButton;
 
     private SharedPreferences settings;
 
     private int paceWindowSeconds = 10;
+
+    private final Handler timerHandler =
+            new Handler(Looper.getMainLooper());
+
+    private final Runnable timerRunnable =
+            new Runnable() {
+
+                @Override
+                public void run() {
+
+                    if (workoutRunning) {
+
+                        updateScreen();
+
+                        timerHandler.postDelayed(
+                                this,
+                                1000
+                        );
+                    }
+                }
+            };
 
     private int dp(float value) {
 
@@ -112,12 +134,12 @@ public class MainActivity extends Activity {
         );
     }
 
-    private android.graphics.drawable.GradientDrawable background(
+    private GradientDrawable background(
             int color,
             float radius) {
 
-        android.graphics.drawable.GradientDrawable drawable =
-                new android.graphics.drawable.GradientDrawable();
+        GradientDrawable drawable =
+                new GradientDrawable();
 
         drawable.setColor(color);
 
@@ -140,19 +162,7 @@ public class MainActivity extends Activity {
                         MODE_PRIVATE
                 );
 
-        paceWindowSeconds =
-                settings.getInt(
-                        "pace_window",
-                        10
-                );
-
-        if (paceWindowSeconds < 3) {
-            paceWindowSeconds = 3;
-        }
-
-        if (paceWindowSeconds > 60) {
-            paceWindowSeconds = 60;
-        }
+        loadPaceWindow();
 
         fusedLocationClient =
                 LocationServices
@@ -172,19 +182,7 @@ public class MainActivity extends Activity {
 
         super.onResume();
 
-        paceWindowSeconds =
-                settings.getInt(
-                        "pace_window",
-                        10
-                );
-
-        if (paceWindowSeconds < 3) {
-            paceWindowSeconds = 3;
-        }
-
-        if (paceWindowSeconds > 60) {
-            paceWindowSeconds = 60;
-        }
+        loadPaceWindow();
 
         if (workoutRunning) {
             startLocationUpdates();
@@ -198,6 +196,23 @@ public class MainActivity extends Activity {
 
         if (!workoutRunning) {
             stopLocationUpdates();
+        }
+    }
+
+    private void loadPaceWindow() {
+
+        paceWindowSeconds =
+                settings.getInt(
+                        "pace_window",
+                        10
+                );
+
+        if (paceWindowSeconds < 3) {
+            paceWindowSeconds = 3;
+        }
+
+        if (paceWindowSeconds > 60) {
+            paceWindowSeconds = 60;
         }
     }
 
@@ -405,9 +420,9 @@ public class MainActivity extends Activity {
 
         timeCard.setPadding(
                 dp(12),
-                dp(14),
                 dp(12),
-                dp(14)
+                dp(12),
+                dp(12)
         );
 
         LinearLayout.LayoutParams timeParams =
@@ -418,7 +433,7 @@ public class MainActivity extends Activity {
 
         timeParams.setMargins(
                 0,
-                dp(12),
+                dp(10),
                 0,
                 0
         );
@@ -439,7 +454,9 @@ public class MainActivity extends Activity {
                 SECONDARY
         );
 
-        timeCard.addView(timeLabel);
+        timeCard.addView(
+                timeLabel
+        );
 
         timeValue =
                 text(
@@ -457,7 +474,7 @@ public class MainActivity extends Activity {
         );
 
         // --------------------------------
-        // ОСНОВНЫЕ ПОКАЗАТЕЛИ
+        // ПОКАЗАТЕЛИ
         // --------------------------------
 
         LinearLayout metrics =
@@ -480,35 +497,35 @@ public class MainActivity extends Activity {
         currentPaceValue =
                 metricValue();
 
-        LinearLayout distanceCard =
+        LinearLayout distanceMetricCard =
                 metricCard(
                         "ДИСТАНЦИЯ, КМ",
                         distanceValue
                 );
 
-        LinearLayout currentPaceCard =
+        LinearLayout currentPaceMetricCard =
                 metricCard(
                         "ТЕКУЩИЙ ПЕЙС",
                         currentPaceValue
                 );
 
-        LinearLayout.LayoutParams half =
+        LinearLayout.LayoutParams half1 =
                 new LinearLayout.LayoutParams(
                         0,
                         -2,
                         1
                 );
 
-        half.setMargins(
+        half1.setMargins(
                 0,
-                dp(10),
-                dp(5),
+                dp(8),
+                dp(4),
                 0
         );
 
         row1.addView(
-                distanceCard,
-                half
+                distanceMetricCard,
+                half1
         );
 
         LinearLayout.LayoutParams half2 =
@@ -519,14 +536,14 @@ public class MainActivity extends Activity {
                 );
 
         half2.setMargins(
-                dp(5),
-                dp(10),
+                dp(4),
+                dp(8),
                 0,
                 0
         );
 
         row1.addView(
-                currentPaceCard,
+                currentPaceMetricCard,
                 half2
         );
 
@@ -545,13 +562,13 @@ public class MainActivity extends Activity {
         intervalPaceValue =
                 metricValue();
 
-        LinearLayout totalPaceCard =
+        LinearLayout totalPaceMetricCard =
                 metricCard(
                         "ОБЩИЙ ПЕЙС",
                         totalPaceValue
                 );
 
-        LinearLayout intervalCard =
+        LinearLayout intervalPaceMetricCard =
                 metricCard(
                         "ПЕЙС ИНТЕРВАЛА",
                         intervalPaceValue
@@ -566,13 +583,13 @@ public class MainActivity extends Activity {
 
         half3.setMargins(
                 0,
-                dp(10),
-                dp(5),
+                dp(8),
+                dp(4),
                 0
         );
 
         row2.addView(
-                totalPaceCard,
+                totalPaceMetricCard,
                 half3
         );
 
@@ -584,80 +601,78 @@ public class MainActivity extends Activity {
                 );
 
         half4.setMargins(
-                dp(5),
-                dp(10),
+                dp(4),
+                dp(8),
                 0,
                 0
         );
 
         row2.addView(
-                intervalCard,
+                intervalPaceMetricCard,
                 half4
         );
 
         metrics.addView(row2);
 
-        root.addView(
-                metrics
-        );
+        root.addView(metrics);
 
         // --------------------------------
         // ИНТЕРВАЛЫ
         // --------------------------------
 
-        LinearLayout intervalCard =
+        LinearLayout intervalsCard =
                 new LinearLayout(this);
 
-        intervalCard.setOrientation(
+        intervalsCard.setOrientation(
                 LinearLayout.VERTICAL
         );
 
-        intervalCard.setBackground(
+        intervalsCard.setBackground(
                 background(
                         CARD,
                         14
                 )
         );
 
-        intervalCard.setPadding(
+        intervalsCard.setPadding(
                 dp(14),
                 dp(10),
                 dp(14),
                 dp(10)
         );
 
-        LinearLayout.LayoutParams intervalParams =
+        LinearLayout.LayoutParams intervalsCardParams =
                 new LinearLayout.LayoutParams(
                         -1,
                         0,
                         1
                 );
 
-        intervalParams.setMargins(
+        intervalsCardParams.setMargins(
                 0,
-                dp(10),
+                dp(8),
                 0,
                 dp(8)
         );
 
         root.addView(
-                intervalCard,
-                intervalParams
+                intervalsCard,
+                intervalsCardParams
         );
 
-        TextView intervalTitle =
+        TextView intervalsTitle =
                 text(
                         "ИНТЕРВАЛЫ",
                         12,
                         true
                 );
 
-        intervalTitle.setTextColor(
+        intervalsTitle.setTextColor(
                 ORANGE
         );
 
-        intervalCard.addView(
-                intervalTitle
+        intervalsCard.addView(
+                intervalsTitle
         );
 
         intervalsText =
@@ -673,17 +688,45 @@ public class MainActivity extends Activity {
 
         intervalsText.setPadding(
                 0,
-                dp(7),
+                dp(6),
                 0,
                 0
         );
 
-        intervalCard.addView(
+        intervalsCard.addView(
                 intervalsText
         );
 
         // --------------------------------
-        // КНОПКИ УПРАВЛЕНИЯ
+        // КНОПКА ИНТЕРВАЛА
+        // --------------------------------
+
+        intervalButton =
+                actionButton(
+                        "НАЧАТЬ ИНТЕРВАЛ",
+                        FIELD
+                );
+
+        LinearLayout.LayoutParams intervalButtonParams =
+                new LinearLayout.LayoutParams(
+                        -1,
+                        dp(42)
+                );
+
+        intervalButtonParams.setMargins(
+                0,
+                dp(8),
+                0,
+                0
+        );
+
+        intervalsCard.addView(
+                intervalButton,
+                intervalButtonParams
+        );
+
+        // --------------------------------
+        // START / STOP / ФИНИШ
         // --------------------------------
 
         LinearLayout controls =
@@ -711,53 +754,53 @@ public class MainActivity extends Activity {
                         GREEN
                 );
 
-        LinearLayout.LayoutParams buttonParams =
+        LinearLayout.LayoutParams button1 =
                 new LinearLayout.LayoutParams(
                         0,
-                        dp(52),
+                        dp(50),
                         1
                 );
 
-        buttonParams.setMargins(
+        button1.setMargins(
                 0,
                 0,
-                dp(5),
+                dp(4),
                 0
         );
 
         controls.addView(
                 startButton,
-                buttonParams
+                button1
         );
 
-        LinearLayout.LayoutParams buttonParams2 =
+        LinearLayout.LayoutParams button2 =
                 new LinearLayout.LayoutParams(
                         0,
-                        dp(52),
+                        dp(50),
                         1
                 );
 
-        buttonParams2.setMargins(
-                dp(5),
+        button2.setMargins(
+                dp(4),
                 0,
-                dp(5),
+                dp(4),
                 0
         );
 
         controls.addView(
                 stopButton,
-                buttonParams2
+                button2
         );
 
-        LinearLayout.LayoutParams buttonParams3 =
+        LinearLayout.LayoutParams button3 =
                 new LinearLayout.LayoutParams(
                         0,
-                        dp(52),
+                        dp(50),
                         1
                 );
 
-        buttonParams3.setMargins(
-                dp(5),
+        button3.setMargins(
+                dp(4),
                 0,
                 0,
                 0
@@ -765,7 +808,7 @@ public class MainActivity extends Activity {
 
         controls.addView(
                 finishButton,
-                buttonParams3
+                button3
         );
 
         root.addView(
@@ -789,9 +832,9 @@ public class MainActivity extends Activity {
 
         navigation.setPadding(
                 0,
-                dp(8),
+                dp(6),
                 0,
-                dp(8)
+                dp(6)
         );
 
         Button historyButton =
@@ -854,6 +897,10 @@ public class MainActivity extends Activity {
                 v -> finishWorkout()
         );
 
+        intervalButton.setOnClickListener(
+                v -> toggleInterval()
+        );
+
         historyButton.setOnClickListener(
                 v -> startActivity(
                         new Intent(
@@ -887,6 +934,7 @@ public class MainActivity extends Activity {
 
         stopButton.setEnabled(false);
         finishButton.setEnabled(false);
+        intervalButton.setEnabled(false);
 
         setContentView(root);
     }
@@ -977,13 +1025,17 @@ public class MainActivity extends Activity {
 
         if (android.os.Build.VERSION.SDK_INT >= 23) {
 
-            if (checkSelfPermission(
-                    Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-                    &&
+            boolean fine =
+                    checkSelfPermission(
+                            Manifest.permission.ACCESS_FINE_LOCATION
+                    ) == PackageManager.PERMISSION_GRANTED;
+
+            boolean coarse =
                     checkSelfPermission(
                             Manifest.permission.ACCESS_COARSE_LOCATION
-                    ) != PackageManager.PERMISSION_GRANTED) {
+                    ) == PackageManager.PERMISSION_GRANTED;
+
+            if (!fine && !coarse) {
 
                 requestPermissions(
                         new String[]{
@@ -1016,12 +1068,12 @@ public class MainActivity extends Activity {
                             grantResults[0] ==
                                     PackageManager.PERMISSION_GRANTED
                                     ||
-                                    (
-                                            grantResults.length > 1
-                                                    &&
-                                            grantResults[1] ==
-                                                    PackageManager.PERMISSION_GRANTED
-                                    )
+                            (
+                                    grantResults.length > 1
+                                            &&
+                                    grantResults[1] ==
+                                            PackageManager.PERMISSION_GRANTED
+                            )
                     )) {
 
                 Toast.makeText(
@@ -1078,7 +1130,9 @@ public class MainActivity extends Activity {
                     ) == PackageManager.PERMISSION_GRANTED;
 
             if (!fine && !coarse) {
+
                 checkLocationPermission();
+
                 return;
             }
         }
@@ -1088,9 +1142,11 @@ public class MainActivity extends Activity {
 
         request.setInterval(1000);
         request.setFastestInterval(500);
+
         request.setPriority(
                 Priority.PRIORITY_HIGH_ACCURACY
         );
+
         request.setSmallestDisplacement(1f);
 
         fusedLocationClient.requestLocationUpdates(
@@ -1117,6 +1173,18 @@ public class MainActivity extends Activity {
 
         if (location == null ||
                 !workoutRunning) {
+
+            return;
+        }
+
+        float accuracy =
+                location.getAccuracy();
+
+        /*
+         * Не используем GPS-точки
+         * с очень плохой точностью.
+         */
+        if (accuracy > 50f) {
             return;
         }
 
@@ -1132,20 +1200,12 @@ public class MainActivity extends Activity {
 
         removeOldLocations(now);
 
-        // Первый GPS-пункт.
         if (lastLocation == null) {
 
             lastLocation =
                     new Location(location);
 
-            return;
-        }
-
-        float accuracy =
-                location.getAccuracy();
-
-        // Не принимаем явно плохие GPS-точки.
-        if (accuracy > 50f) {
+            updateScreen();
 
             return;
         }
@@ -1157,10 +1217,6 @@ public class MainActivity extends Activity {
 
         /*
          * Защита от GPS-скачков.
-         *
-         * При интервале обновления около 1 сек
-         * движение более 100 м за одну точку
-         * считаем ошибкой GPS.
          */
         if (delta >= 1f &&
                 delta <= 100f) {
@@ -1168,6 +1224,7 @@ public class MainActivity extends Activity {
             totalDistanceMeters += delta;
 
             if (intervalRunning) {
+
                 intervalDistanceMeters += delta;
             }
         }
@@ -1215,8 +1272,9 @@ public class MainActivity extends Activity {
             return;
         }
 
+        loadPaceWindow();
+
         workoutRunning = true;
-        workoutFinished = false;
 
         workoutStartTime =
                 System.currentTimeMillis();
@@ -1252,8 +1310,21 @@ public class MainActivity extends Activity {
         startButton.setEnabled(false);
         stopButton.setEnabled(true);
         finishButton.setEnabled(true);
+        intervalButton.setEnabled(true);
+
+        intervalButton.setText(
+                "НАЧАТЬ ИНТЕРВАЛ"
+        );
 
         startLocationUpdates();
+
+        timerHandler.removeCallbacks(
+                timerRunnable
+        );
+
+        timerHandler.post(
+                timerRunnable
+        );
 
         updateScreen();
     }
@@ -1268,22 +1339,23 @@ public class MainActivity extends Activity {
 
         stopLocationUpdates();
 
-        if (intervalRunning) {
-
-            finishCurrentInterval();
-        }
-
-        long now =
-                System.currentTimeMillis();
+        timerHandler.removeCallbacks(
+                timerRunnable
+        );
 
         workoutTimeSeconds =
                 Math.max(
                         0,
                         (
-                                now -
-                                        workoutStartTime
+                                System.currentTimeMillis()
+                                        -
+                                workoutStartTime
                         ) / 1000
                 );
+
+        if (intervalRunning) {
+            finishCurrentInterval();
+        }
 
         statusValue.setText(
                 "ПАУЗА"
@@ -1296,42 +1368,41 @@ public class MainActivity extends Activity {
         startButton.setEnabled(true);
         stopButton.setEnabled(false);
         finishButton.setEnabled(true);
+        intervalButton.setEnabled(false);
 
         updateScreen();
     }
 
     private void finishWorkout() {
 
-        if (!workoutRunning &&
-                workoutStartTime == 0) {
+        if (workoutStartTime == 0) {
             return;
         }
 
         if (workoutRunning) {
 
-            workoutRunning = false;
-
-            stopLocationUpdates();
-
-            long now =
-                    System.currentTimeMillis();
-
             workoutTimeSeconds =
                     Math.max(
                             0,
                             (
-                                    now -
-                                            workoutStartTime
+                                    System.currentTimeMillis()
+                                            -
+                                    workoutStartTime
                             ) / 1000
                     );
+
+            workoutRunning = false;
+
+            stopLocationUpdates();
+
+            timerHandler.removeCallbacks(
+                    timerRunnable
+            );
         }
 
         if (intervalRunning) {
-
             finishCurrentInterval();
         }
-
-        workoutFinished = true;
 
         statusValue.setText(
                 "ФИНИШ"
@@ -1344,6 +1415,7 @@ public class MainActivity extends Activity {
         startButton.setEnabled(true);
         stopButton.setEnabled(false);
         finishButton.setEnabled(false);
+        intervalButton.setEnabled(false);
 
         double distanceKm =
                 totalDistanceMeters / 1000.0;
@@ -1377,6 +1449,48 @@ public class MainActivity extends Activity {
         );
     }
 
+    // --------------------------------
+    // ИНТЕРВАЛ
+    // --------------------------------
+
+    private void toggleInterval() {
+
+        if (!workoutRunning) {
+            return;
+        }
+
+        if (!intervalRunning) {
+
+            startInterval();
+
+        } else {
+
+            finishCurrentInterval();
+        }
+    }
+
+    private void startInterval() {
+
+        intervalRunning = true;
+
+        intervalDistanceMeters = 0;
+
+        intervalStartTime =
+                System.currentTimeMillis();
+
+        intervalPaceValue.setText(
+                "—"
+        );
+
+        intervalButton.setText(
+                "ЗАВЕРШИТЬ ИНТЕРВАЛ"
+        );
+
+        intervalsText.setText(
+                "Интервал выполняется..."
+        );
+    }
+
     private void finishCurrentInterval() {
 
         if (!intervalRunning) {
@@ -1391,7 +1505,7 @@ public class MainActivity extends Activity {
                         1,
                         (
                                 now -
-                                        intervalStartTime
+                                intervalStartTime
                         ) / 1000
                 );
 
@@ -1418,8 +1532,6 @@ public class MainActivity extends Activity {
                 intervalText
         );
 
-        updateIntervalsText();
-
         intervalRunning = false;
 
         intervalDistanceMeters = 0;
@@ -1429,33 +1541,12 @@ public class MainActivity extends Activity {
         intervalPaceValue.setText(
                 "—"
         );
-    }
 
-    /*
-     * Этот метод оставлен для управления интервалами
-     * внутри приложения.
-     */
-    private void startInterval() {
-
-        if (!workoutRunning ||
-                intervalRunning) {
-            return;
-        }
-
-        intervalRunning = true;
-
-        intervalDistanceMeters = 0;
-
-        intervalStartTime =
-                System.currentTimeMillis();
-
-        intervalPaceValue.setText(
-                "—"
+        intervalButton.setText(
+                "НАЧАТЬ ИНТЕРВАЛ"
         );
 
-        intervalsText.setText(
-                "Интервал выполняется..."
-        );
+        updateIntervalsText();
     }
 
     private void updateIntervalsText() {
@@ -1505,11 +1596,14 @@ public class MainActivity extends Activity {
         if (workoutRunning) {
 
             elapsed =
-                    (
-                            System.currentTimeMillis()
-                                    -
-                            workoutStartTime
-                    ) / 1000;
+                    Math.max(
+                            0,
+                            (
+                                    System.currentTimeMillis()
+                                            -
+                                    workoutStartTime
+                            ) / 1000
+                    );
 
             workoutTimeSeconds =
                     elapsed;
@@ -1535,16 +1629,16 @@ public class MainActivity extends Activity {
                 )
         );
 
-        double totalPaceSeconds =
-                distanceKm > 0
-                        ? elapsed / distanceKm
-                        : 0;
+        // Общий пейс.
+        if (distanceKm > 0 &&
+                elapsed > 0) {
 
-        if (totalPaceSeconds > 0) {
+            double totalPace =
+                    elapsed / distanceKm;
 
             totalPaceValue.setText(
                     formatPace(
-                            totalPaceSeconds
+                            totalPace
                     )
             );
 
@@ -1555,14 +1649,15 @@ public class MainActivity extends Activity {
             );
         }
 
-        double currentPaceSeconds =
+        // Текущий пейс.
+        double currentPace =
                 calculateCurrentPace();
 
-        if (currentPaceSeconds > 0) {
+        if (currentPace > 0) {
 
             currentPaceValue.setText(
                     formatPace(
-                            currentPaceSeconds
+                            currentPace
                     )
             );
 
@@ -1573,6 +1668,7 @@ public class MainActivity extends Activity {
             );
         }
 
+        // Пейс текущего интервала.
         if (intervalRunning) {
 
             long intervalSeconds =
@@ -1586,29 +1682,24 @@ public class MainActivity extends Activity {
                     );
 
             double intervalKm =
-                    intervalDistanceMeters / 1000.0;
+                    intervalDistanceMeters /
+                            1000.0;
 
             if (intervalKm > 0) {
 
-                double pace =
+                double intervalPace =
                         intervalSeconds /
                                 intervalKm;
 
                 intervalPaceValue.setText(
-                        formatPace(pace)
+                        formatPace(
+                                intervalPace
+                        )
                 );
             }
         }
     }
 
-    /*
-     * Текущий пейс рассчитывается только
-     * по GPS-точкам за последние X секунд.
-     *
-     * X берётся из:
-     * SharedPreferences "settings"
-     * ключ "pace_window".
-     */
     private double calculateCurrentPace() {
 
         if (recentLocations.size() < 2) {
@@ -1623,6 +1714,7 @@ public class MainActivity extends Activity {
 
         if (first == null ||
                 last == null) {
+
             return 0;
         }
 
@@ -1630,11 +1722,11 @@ public class MainActivity extends Activity {
                 last.timeMillis -
                         first.timeMillis;
 
-        if (elapsedMillis < 1000) {
+        if (elapsedMillis < 2000) {
             return 0;
         }
 
-        double distance = 0;
+        double distanceMeters = 0;
 
         Location previous =
                 first.location;
@@ -1654,19 +1746,19 @@ public class MainActivity extends Activity {
             if (delta >= 1 &&
                     delta <= 100) {
 
-                distance += delta;
+                distanceMeters += delta;
             }
 
             previous =
                     point.location;
         }
 
-        if (distance < 3) {
+        if (distanceMeters < 3) {
             return 0;
         }
 
         double distanceKm =
-                distance / 1000.0;
+                distanceMeters / 1000.0;
 
         double seconds =
                 elapsedMillis / 1000.0;
@@ -1735,15 +1827,6 @@ public class MainActivity extends Activity {
         );
     }
 
-    private String formatDistance() {
-
-        return String.format(
-                Locale.getDefault(),
-                "%.2f",
-                totalDistanceMeters / 1000.0
-        );
-    }
-
     // --------------------------------
     // РЕЗУЛЬТАТ
     // --------------------------------
@@ -1806,14 +1889,14 @@ public class MainActivity extends Activity {
 
             Toast.makeText(
                     this,
-                    "Карта будет добавлена на следующем шаге",
+                    "Карта будет добавлена следующим шагом",
                     Toast.LENGTH_SHORT
             ).show();
         }
     }
 
     // --------------------------------
-    // ВНУТРЕННИЙ КЛАСС GPS-ТОЧКИ
+    // GPS-ТОЧКА
     // --------------------------------
 
     private static class LocationPoint {

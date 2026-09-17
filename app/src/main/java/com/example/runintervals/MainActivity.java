@@ -61,6 +61,12 @@ public class MainActivity extends Activity {
 
     private static final int LOCATION_PERMISSION_REQUEST = 1001;
 
+    private static final String ROUTE_PREFS =
+            "current_route";
+
+    private static final String ROUTE_POINTS =
+            "points";
+
     private FusedLocationProviderClient fusedLocationClient;
     private LocationCallback locationCallback;
     private Location lastLocation;
@@ -96,6 +102,8 @@ public class MainActivity extends Activity {
     private Button intervalButton;
 
     private SharedPreferences settings;
+
+    private SharedPreferences routePreferences;
 
     private int paceWindowSeconds = 10;
 
@@ -154,6 +162,12 @@ public class MainActivity extends Activity {
         settings =
                 getSharedPreferences(
                         "settings",
+                        MODE_PRIVATE
+                );
+
+        routePreferences =
+                getSharedPreferences(
+                        ROUTE_PREFS,
                         MODE_PRIVATE
                 );
 
@@ -763,13 +777,6 @@ public class MainActivity extends Activity {
                 navigationParams()
         );
 
-        /*
-         * ВАЖНО:
-         * Нижняя панель теперь получает дополнительный
-         * отступ снизу под системную навигацию Android.
-         * Поэтому кнопки не уходят под системную панель.
-         */
-
         root.addView(
                 navigation,
                 new LinearLayout.LayoutParams(
@@ -970,7 +977,7 @@ public class MainActivity extends Activity {
     }
 
     // ==========================================
-    // GPS
+    // GPS PERMISSION
     // ==========================================
 
     private void checkLocationPermission() {
@@ -1043,6 +1050,10 @@ public class MainActivity extends Activity {
             }
         }
     }
+
+    // ==========================================
+    // GPS CALLBACK
+    // ==========================================
 
     private void createLocationCallback() {
 
@@ -1118,6 +1129,10 @@ public class MainActivity extends Activity {
         }
     }
 
+    // ==========================================
+    // GPS PROCESSING + ROUTE
+    // ==========================================
+
     private void processLocation(
             Location location) {
 
@@ -1147,6 +1162,8 @@ public class MainActivity extends Activity {
             lastLocation =
                     new Location(location);
 
+            saveRoutePoint(location);
+
             updateScreen();
 
             return;
@@ -1165,12 +1182,64 @@ public class MainActivity extends Activity {
             if (intervalRunning) {
                 intervalDistanceMeters += delta;
             }
+
+            saveRoutePoint(location);
         }
 
         lastLocation =
                 new Location(location);
 
         updateScreen();
+    }
+
+    private void saveRoutePoint(
+            Location location) {
+
+        if (location == null) {
+            return;
+        }
+
+        String oldPoints =
+                routePreferences.getString(
+                        ROUTE_POINTS,
+                        ""
+                );
+
+        String point =
+                String.format(
+                        Locale.US,
+                        "%.7f,%.7f",
+                        location.getLatitude(),
+                        location.getLongitude()
+                );
+
+        String newPoints;
+
+        if (oldPoints.isEmpty()) {
+
+            newPoints = point;
+
+        } else {
+
+            newPoints =
+                    oldPoints +
+                            ";" +
+                            point;
+        }
+
+        routePreferences.edit()
+                .putString(
+                        ROUTE_POINTS,
+                        newPoints
+                )
+                .apply();
+    }
+
+    private void clearRoute() {
+
+        routePreferences.edit()
+                .remove(ROUTE_POINTS)
+                .apply();
     }
 
     private void removeOldLocations(
@@ -1228,6 +1297,8 @@ public class MainActivity extends Activity {
 
         recentLocations.clear();
         savedIntervals.clear();
+
+        clearRoute();
 
         intervalsText.setText(
                 "Бег начат. Можно начинать интервалы."

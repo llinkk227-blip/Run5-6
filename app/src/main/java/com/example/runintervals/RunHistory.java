@@ -3,6 +3,10 @@ package com.example.runintervals;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+
 public class RunHistory {
 
     private static final String PREFS = "run_data";
@@ -11,55 +15,45 @@ public class RunHistory {
     private final SharedPreferences prefs;
 
     public RunHistory(Context context) {
-        prefs = context.getSharedPreferences(
-                PREFS,
-                Context.MODE_PRIVATE
-        );
+        prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
     }
 
-    public void addRun(
-            double distanceKm,
-            long timeSeconds,
-            double calories) {
+    public void addRun(double distanceKm,
+                       long timeSeconds,
+                       double calories) {
 
-        String oldHistory =
-                prefs.getString(HISTORY, "");
+        String date = new SimpleDateFormat(
+                "dd.MM.yyyy HH:mm",
+                Locale.getDefault()
+        ).format(new Date());
 
-        String run =
-                String.format(
-                        java.util.Locale.getDefault(),
-                        "%.2f км | %02d:%02d | %.0f ккал",
-                        distanceKm,
-                        timeSeconds / 60,
-                        timeSeconds % 60,
-                        calories
-                );
+        double pace = distanceKm > 0 ? timeSeconds / distanceKm : 0;
 
-        String newHistory;
+        String run = String.format(
+                Locale.getDefault(),
+                "%s\n📍 %.2f км   ⏱ %02d:%02d\n🏃 %02d:%02d мин/км   🔥 %.0f ккал",
+                date,
+                distanceKm,
+                timeSeconds / 60,
+                timeSeconds % 60,
+                (int)(pace / 60),
+                (int)(pace % 60),
+                calories
+        );
 
-        if (oldHistory.isEmpty()) {
-            newHistory = run;
-        } else {
-            newHistory = run + "\n" + oldHistory;
-        }
+        String old = prefs.getString(HISTORY, "");
 
         prefs.edit()
-                .putString(HISTORY, newHistory)
+                .putString(HISTORY,
+                        old.isEmpty() ? run : run + "\n\n" + old)
                 .apply();
     }
 
     public String getHistory() {
-
-        return prefs.getString(
-                HISTORY,
-                ""
-        );
+        return prefs.getString(HISTORY, "");
     }
 
-    public void clearHistory() {
-
-        prefs.edit()
-                .remove(HISTORY)
-                .apply();
+    public void clear() {
+        prefs.edit().remove(HISTORY).apply();
     }
 }

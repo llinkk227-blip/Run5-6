@@ -104,6 +104,11 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        /*
+         * Настройка osmdroid.
+         * Используем приватный каталог приложения,
+         * чтобы не зависеть от доступа к общей памяти телефона.
+         */
         File basePath =
                 new File(
                         getFilesDir(),
@@ -132,8 +137,12 @@ public class MainActivity extends Activity {
                 tileCache
         );
 
+        /*
+         * ВАЖНО:
+         * OSM требует понятный User-Agent приложения.
+         */
         Configuration.getInstance().setUserAgentValue(
-                getPackageName()
+                "RunIntervals/2.0"
         );
 
         Configuration.getInstance().load(
@@ -153,7 +162,7 @@ public class MainActivity extends Activity {
         );
 
         Configuration.getInstance().setUserAgentValue(
-                getPackageName()
+                "RunIntervals/2.0"
         );
 
         locationClient =
@@ -290,6 +299,9 @@ public class MainActivity extends Activity {
 
         root.addView(statusText);
 
+        /*
+         * КАРТА
+         */
         map = new MapView(this);
 
         map.setTileSource(
@@ -297,6 +309,8 @@ public class MainActivity extends Activity {
         );
 
         map.setMultiTouchControls(true);
+
+        map.setUseDataConnection(true);
 
         map.setBackgroundColor(
                 Color.rgb(70, 150, 220)
@@ -325,6 +339,43 @@ public class MainActivity extends Activity {
                 startPoint
         );
 
+        /*
+         * Подпись OpenStreetMap.
+         */
+        TextView mapCopyright =
+                new TextView(this);
+
+        mapCopyright.setText(
+                "© OpenStreetMap contributors"
+        );
+
+        mapCopyright.setTextSize(11);
+        mapCopyright.setTextColor(Color.DKGRAY);
+        mapCopyright.setBackgroundColor(
+                Color.argb(
+                        190,
+                        255,
+                        255,
+                        255
+                )
+        );
+
+        mapCopyright.setGravity(
+                Gravity.CENTER
+        );
+
+        mapCopyright.setPadding(
+                6, 2, 6, 2
+        );
+
+        root.addView(
+                mapCopyright,
+                new LinearLayout.LayoutParams(
+                        -1,
+                        -2
+                )
+        );
+
         ScrollView scroll =
                 new ScrollView(this);
 
@@ -335,11 +386,6 @@ public class MainActivity extends Activity {
                 LinearLayout.VERTICAL
         );
 
-        /*
-         * Увеличиваем нижний внутренний отступ.
-         * Благодаря этому последние кнопки
-         * поднимаются выше системной навигации.
-         */
         info.setPadding(
                 12, 5, 12, 70
         );
@@ -550,10 +596,6 @@ public class MainActivity extends Activity {
                         "⚙ Настройки"
                 );
 
-        /*
-         * Нижние кнопки находятся внутри ScrollView.
-         * Добавляем небольшой внешний отступ между ними.
-         */
         LinearLayout.LayoutParams bottomButtonParams =
                 new LinearLayout.LayoutParams(
                         -1,
@@ -579,10 +621,6 @@ public class MainActivity extends Activity {
                 bottomButtonParams
         );
 
-        /*
-         * Дополнительное пространство после
-         * кнопки «Настройки».
-         */
         TextView bottomSpace =
                 new TextView(this);
 

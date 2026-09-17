@@ -31,6 +31,7 @@ import org.maplibre.android.maps.MapView;
 import org.maplibre.android.maps.Style;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 public class MainActivity extends Activity {
@@ -248,10 +249,6 @@ public class MainActivity extends Activity {
         );
 
         root.addView(statusText);
-
-        /*
-         * MAPLIBRE
-         */
 
         mapView =
                 new MapView(this);
@@ -743,9 +740,11 @@ public class MainActivity extends Activity {
         String result =
                 String.format(
                         Locale.getDefault(),
-                        "Интервал %d: %.2f км   %02d:%02d мин/км",
+                        "Интервал %d\n📍 %.2f км\n⏱ %02d:%02d\n🏃 %02d:%02d мин/км",
                         intervalNumber,
                         intervalKm,
+                        intervalTime / 60,
+                        intervalTime % 60,
                         paceMin,
                         paceSec
                 );
@@ -778,7 +777,7 @@ public class MainActivity extends Activity {
                 intervalResults) {
 
             builder.append(item)
-                    .append("\n");
+                    .append("\n\n");
         }
 
         if (intervalRunning) {
@@ -828,10 +827,17 @@ public class MainActivity extends Activity {
         RunHistory history =
                 new RunHistory(this);
 
+        // Сохраняем также детализацию интервалов
+        List<String> savedIntervals =
+                new ArrayList<>(
+                        intervalResults
+                );
+
         history.addRun(
                 km,
                 totalTimeSeconds,
-                calories
+                calories,
+                savedIntervals
         );
 
         workoutStarted = false;

@@ -9,6 +9,7 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.location.Location;
 import android.os.Bundle;
+import android.os.Handler;
 import android.view.Gravity;
 import android.widget.Button;
 import android.widget.LinearLayout;
@@ -56,7 +57,6 @@ public class MainActivity extends Activity {
 
     private long totalTimeSeconds = 0;
     private long intervalStartTime = 0;
-    private long lastTickTime = 0;
 
     private float totalDistance = 0;
     private float intervalStartDistance = 0;
@@ -69,6 +69,35 @@ public class MainActivity extends Activity {
 
     private final ArrayList<String> intervalResults =
             new ArrayList<>();
+
+    private final Handler timerHandler =
+            new Handler();
+
+    private final Runnable timerRunnable =
+            new Runnable() {
+
+                @Override
+                public void run() {
+
+                    if (workoutStarted) {
+
+                        long now =
+                                System.currentTimeMillis();
+
+                        totalTimeSeconds =
+                                (now - workoutStartTime) / 1000;
+
+                        updateStats();
+
+                        timerHandler.postDelayed(
+                                this,
+                                1000
+                        );
+                    }
+                }
+            };
+
+    private long workoutStartTime = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -177,8 +206,9 @@ public class MainActivity extends Activity {
                 LinearLayout.VERTICAL
         );
 
+        // СИНИЙ ФОН ВСЕЙ ПРОГРАММЫ
         root.setBackgroundColor(
-                Color.rgb(205, 210, 215)
+                Color.rgb(30, 120, 200)
         );
 
         TextView title =
@@ -192,8 +222,10 @@ public class MainActivity extends Activity {
                 Gravity.CENTER
         );
 
+        title.setTextColor(Color.WHITE);
+
         title.setPadding(
-                10, 18, 10, 12
+                10, 15, 10, 10
         );
 
         root.addView(title);
@@ -209,8 +241,11 @@ public class MainActivity extends Activity {
                 Gravity.CENTER
         );
 
+        statusText.setTextColor(Color.WHITE);
+
         root.addView(statusText);
 
+        // КАРТА
         map = new MapView(this);
 
         map.setTileSource(
@@ -219,12 +254,17 @@ public class MainActivity extends Activity {
 
         map.setMultiTouchControls(true);
 
+        // Синий фон области карты
+        map.setBackgroundColor(
+                Color.rgb(70, 150, 220)
+        );
+
         root.addView(
                 map,
                 new LinearLayout.LayoutParams(
                         -1,
                         0,
-                        0.40f
+                        0.38f
                 )
         );
 
@@ -253,7 +293,7 @@ public class MainActivity extends Activity {
         );
 
         info.setPadding(
-                12, 8, 12, 16
+                12, 5, 12, 5
         );
 
         TextView metricsTitle =
@@ -266,6 +306,8 @@ public class MainActivity extends Activity {
         metricsTitle.setGravity(
                 Gravity.CENTER
         );
+
+        metricsTitle.setTextColor(Color.WHITE);
 
         info.addView(metricsTitle);
 
@@ -297,6 +339,9 @@ public class MainActivity extends Activity {
         distanceText.setGravity(
                 Gravity.CENTER
         );
+
+        timeText.setTextColor(Color.WHITE);
+        distanceText.setTextColor(Color.WHITE);
 
         row1.addView(
                 timeText,
@@ -347,6 +392,9 @@ public class MainActivity extends Activity {
                 Gravity.CENTER
         );
 
+        paceText.setTextColor(Color.WHITE);
+        caloriesText.setTextColor(Color.WHITE);
+
         row2.addView(
                 paceText,
                 new LinearLayout.LayoutParams(
@@ -378,6 +426,8 @@ public class MainActivity extends Activity {
                 Gravity.CENTER
         );
 
+        intervalTitle.setTextColor(Color.WHITE);
+
         info.addView(intervalTitle);
 
         intervalsText =
@@ -388,8 +438,10 @@ public class MainActivity extends Activity {
                 );
 
         intervalsText.setPadding(
-                15, 8, 15, 12
+                15, 5, 15, 5
         );
+
+        intervalsText.setTextColor(Color.WHITE);
 
         info.addView(intervalsText);
 
@@ -466,6 +518,16 @@ public class MainActivity extends Activity {
         info.addView(statisticsButton);
         info.addView(settingsButton);
 
+        // НИЖНИЙ ОТСТУП ОТ СИСТЕМНЫХ КНОПОК
+        TextView bottomSpace =
+                new TextView(this);
+
+        bottomSpace.setHeight(
+                35
+        );
+
+        info.addView(bottomSpace);
+
         scroll.addView(info);
 
         root.addView(
@@ -473,7 +535,7 @@ public class MainActivity extends Activity {
                 new LinearLayout.LayoutParams(
                         -1,
                         0,
-                        0.60f
+                        0.62f
                 )
         );
 
@@ -559,6 +621,13 @@ public class MainActivity extends Activity {
             intervalNumber = 0;
 
             intervalResults.clear();
+
+            workoutStartTime =
+                    System.currentTimeMillis();
+
+            timerHandler.post(
+                    timerRunnable
+            );
         }
 
         intervalRunning = true;
@@ -570,9 +639,6 @@ public class MainActivity extends Activity {
 
         intervalStartDistance =
                 totalDistance;
-
-        lastTickTime =
-                System.currentTimeMillis();
 
         statusText.setText(
                 "🏃 Интервал " +
@@ -705,6 +771,10 @@ public class MainActivity extends Activity {
         workoutStarted = false;
         intervalRunning = false;
 
+        timerHandler.removeCallbacks(
+                timerRunnable
+        );
+
         statusText.setText(
                 "✓ Тренировка завершена"
         );
@@ -785,9 +855,11 @@ public class MainActivity extends Activity {
                 new Marker(map);
 
         marker.setPosition(point);
+
         marker.setTitle("Вы здесь");
 
         map.getOverlays().clear();
+
         map.getOverlays().add(marker);
 
         map.invalidate();
@@ -891,16 +963,34 @@ public class MainActivity extends Activity {
 
         loadWeight();
 
+        if (map != null) {
+            map.onResume();
+        }
+
         if (intervalRunning) {
             updateStats();
         }
     }
 
     @Override
+    protected void onPause() {
+
+        if (map != null) {
+            map.onPause();
+        }
+
+        super.onPause();
+    }
+
+    @Override
     protected void onDestroy() {
 
-        super.onDestroy();
+        timerHandler.removeCallbacks(
+                timerRunnable
+        );
 
         stopLocationUpdates();
+
+        super.onDestroy();
     }
 }

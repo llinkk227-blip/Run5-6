@@ -8,7 +8,6 @@ import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.text.InputType;
 import android.view.Gravity;
-import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -25,6 +24,9 @@ public class SettingsActivity extends Activity {
     private static final int CARD =
             Color.rgb(27, 30, 36);
 
+    private static final int FIELD =
+            Color.rgb(34, 37, 44);
+
     private static final int ORANGE =
             Color.rgb(252, 76, 2);
 
@@ -38,6 +40,7 @@ public class SettingsActivity extends Activity {
             Color.rgb(54, 194, 117);
 
     private EditText weightEdit;
+    private EditText paceWindowEdit;
 
     private SharedPreferences prefs;
 
@@ -58,7 +61,6 @@ public class SettingsActivity extends Activity {
                 new GradientDrawable();
 
         drawable.setColor(color);
-
         drawable.setCornerRadius(
                 dp(radius)
         );
@@ -94,7 +96,6 @@ public class SettingsActivity extends Activity {
         view.setTextColor(WHITE);
 
         if (bold) {
-
             view.setTypeface(
                     Typeface.DEFAULT,
                     Typeface.BOLD
@@ -129,13 +130,11 @@ public class SettingsActivity extends Activity {
                         true
                 );
 
-        root.addView(
-                title
-        );
+        root.addView(title);
 
         TextView subtitle =
                 text(
-                        "Параметры приложения",
+                        "Параметры тренировки",
                         13,
                         false
                 );
@@ -151,9 +150,7 @@ public class SettingsActivity extends Activity {
                 dp(18)
         );
 
-        root.addView(
-                subtitle
-        );
+        root.addView(subtitle);
 
         LinearLayout card =
                 new LinearLayout(this);
@@ -176,6 +173,8 @@ public class SettingsActivity extends Activity {
                 dp(18)
         );
 
+        root.addView(card);
+
         TextView section =
                 text(
                         "ПАРАМЕТРЫ БЕГУНА",
@@ -188,6 +187,10 @@ public class SettingsActivity extends Activity {
         );
 
         card.addView(section);
+
+        // -------------------------
+        // ВЕС
+        // -------------------------
 
         TextView weightLabel =
                 text(
@@ -216,9 +219,7 @@ public class SettingsActivity extends Activity {
                 SECONDARY
         );
 
-        card.addView(
-                weightDescription
-        );
+        card.addView(weightDescription);
 
         weightEdit =
                 new EditText(this);
@@ -253,22 +254,18 @@ public class SettingsActivity extends Activity {
 
         weightEdit.setBackground(
                 background(
-                        Color.rgb(
-                                34,
-                                37,
-                                44
-                        ),
+                        FIELD,
                         10
                 )
         );
 
-        LinearLayout.LayoutParams editParams =
+        LinearLayout.LayoutParams fieldParams =
                 new LinearLayout.LayoutParams(
                         -1,
                         dp(52)
                 );
 
-        editParams.setMargins(
+        fieldParams.setMargins(
                 0,
                 dp(12),
                 0,
@@ -277,7 +274,7 @@ public class SettingsActivity extends Activity {
 
         card.addView(
                 weightEdit,
-                editParams
+                fieldParams
         );
 
         double savedWeight =
@@ -293,6 +290,131 @@ public class SettingsActivity extends Activity {
                     )
             );
         }
+
+        // -------------------------
+        // ТЕКУЩИЙ ПЕЙС
+        // -------------------------
+
+        TextView paceLabel =
+                text(
+                        "Текущий пейс",
+                        16,
+                        true
+                );
+
+        paceLabel.setPadding(
+                0,
+                dp(22),
+                0,
+                dp(4)
+        );
+
+        card.addView(paceLabel);
+
+        TextView paceDescription =
+                text(
+                        "За какой промежуток времени рассчитывать текущий пейс",
+                        12,
+                        false
+                );
+
+        paceDescription.setTextColor(
+                SECONDARY
+        );
+
+        card.addView(
+                paceDescription
+        );
+
+        paceWindowEdit =
+                new EditText(this);
+
+        paceWindowEdit.setTextSize(18);
+        paceWindowEdit.setTextColor(WHITE);
+        paceWindowEdit.setSingleLine(true);
+
+        paceWindowEdit.setInputType(
+                InputType.TYPE_CLASS_NUMBER
+        );
+
+        paceWindowEdit.setHint(
+                "10"
+        );
+
+        paceWindowEdit.setHintTextColor(
+                Color.rgb(
+                        100,
+                        105,
+                        115
+                )
+        );
+
+        paceWindowEdit.setPadding(
+                dp(14),
+                0,
+                dp(14),
+                0
+        );
+
+        paceWindowEdit.setBackground(
+                background(
+                        FIELD,
+                        10
+                )
+        );
+
+        LinearLayout.LayoutParams paceParams =
+                new LinearLayout.LayoutParams(
+                        -1,
+                        dp(52)
+                );
+
+        paceParams.setMargins(
+                0,
+                dp(12),
+                0,
+                0
+        );
+
+        card.addView(
+                paceWindowEdit,
+                paceParams
+        );
+
+        int savedPaceWindow =
+                getPaceWindow();
+
+        paceWindowEdit.setText(
+                String.valueOf(
+                        savedPaceWindow
+                )
+        );
+
+        TextView secondsText =
+                text(
+                        "секунд  •  допустимо от 3 до 60",
+                        12,
+                        false
+                );
+
+        secondsText.setTextColor(
+                SECONDARY
+        );
+
+        secondsText.setPadding(
+                dp(2),
+                dp(6),
+                0,
+                0
+        );
+
+        card.addView(
+                secondsText
+        );
+
+        // -------------------------
+        // КНОПКА СОХРАНИТЬ
+        // -------------------------
 
         Button saveButton =
                 new Button(this);
@@ -329,7 +451,7 @@ public class SettingsActivity extends Activity {
 
         saveParams.setMargins(
                 0,
-                dp(14),
+                dp(18),
                 0,
                 0
         );
@@ -339,9 +461,9 @@ public class SettingsActivity extends Activity {
                 saveParams
         );
 
-        root.addView(
-                card
-        );
+        // -------------------------
+        // ИНФОРМАЦИЯ
+        // -------------------------
 
         LinearLayout infoCard =
                 new LinearLayout(this);
@@ -393,9 +515,7 @@ public class SettingsActivity extends Activity {
                 ORANGE
         );
 
-        infoCard.addView(
-                infoTitle
-        );
+        infoCard.addView(infoTitle);
 
         TextView info =
                 text(
@@ -472,15 +592,40 @@ public class SettingsActivity extends Activity {
         );
     }
 
+    private int getPaceWindow() {
+
+        int value =
+                prefs.getInt(
+                        "pace_window",
+                        10
+                );
+
+        if (value < 3) {
+            value = 3;
+        }
+
+        if (value > 60) {
+            value = 60;
+        }
+
+        return value;
+    }
+
     private void saveSettings() {
 
-        String value =
+        String weightValue =
                 weightEdit
                         .getText()
                         .toString()
                         .trim();
 
-        if (value.isEmpty()) {
+        String paceValue =
+                paceWindowEdit
+                        .getText()
+                        .toString()
+                        .trim();
+
+        if (weightValue.isEmpty()) {
 
             Toast.makeText(
                     this,
@@ -491,14 +636,30 @@ public class SettingsActivity extends Activity {
             return;
         }
 
+        if (paceValue.isEmpty()) {
+
+            Toast.makeText(
+                    this,
+                    "Введите время расчёта пейса",
+                    Toast.LENGTH_SHORT
+            ).show();
+
+            return;
+        }
+
         try {
 
             double weight =
                     Double.parseDouble(
-                            value.replace(
+                            weightValue.replace(
                                     ",",
                                     "."
                             )
+                    );
+
+            int paceWindow =
+                    Integer.parseInt(
+                            paceValue
                     );
 
             if (weight <= 0 ||
@@ -513,10 +674,26 @@ public class SettingsActivity extends Activity {
                 return;
             }
 
+            if (paceWindow < 3 ||
+                    paceWindow > 60) {
+
+                Toast.makeText(
+                        this,
+                        "Пейс: от 3 до 60 секунд",
+                        Toast.LENGTH_SHORT
+                ).show();
+
+                return;
+            }
+
             prefs.edit()
                     .putFloat(
                             "weight",
                             (float) weight
+                    )
+                    .putInt(
+                            "pace_window",
+                            paceWindow
                     )
                     .apply();
 
@@ -530,9 +707,9 @@ public class SettingsActivity extends Activity {
 
             Toast.makeText(
                     this,
-                    "Введите число",
+                    "Проверьте введённые значения",
                     Toast.LENGTH_SHORT
             ).show();
         }
     }
-}
+            }

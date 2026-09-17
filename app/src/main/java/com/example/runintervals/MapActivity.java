@@ -65,7 +65,6 @@ public class MapActivity extends Activity {
 
         root.setBackgroundColor(BG);
 
-        // Заголовок
         LinearLayout header =
                 new LinearLayout(this);
 
@@ -121,7 +120,6 @@ public class MapActivity extends Activity {
 
         root.addView(header);
 
-        // Карта
         mapView =
                 new MapView(this);
 
@@ -214,4 +212,14 @@ public class MapActivity extends Activity {
     protected void onSaveInstanceState(
             Bundle outState) {
 
-        super
+        super.onSaveInstanceState(
+                outState
+        );
+
+        if (mapView != null) {
+            mapView.onSaveInstanceState(
+                    outState
+            );
+        }
+    }
+}

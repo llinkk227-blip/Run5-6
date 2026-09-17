@@ -1,17 +1,31 @@
 package com.example.runintervals;
 
+import android.Manifest;
 import android.app.Activity;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.location.Location;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
+
 import org.maplibre.android.MapLibre;
 import org.maplibre.android.maps.MapView;
 import org.maplibre.android.maps.Style;
+
+import org.maplibre.android.geometry.LatLng;
+import org.maplibre.android.location.LocationComponentActivationOptions;
+import org.maplibre.android.location.LocationComponentOptions;
+import org.maplibre.android.location.LocationComponentPlugin;
 
 public class MapActivity extends Activity {
 
@@ -27,7 +41,11 @@ public class MapActivity extends Activity {
     private static final int WHITE =
             Color.WHITE;
 
+    private static final int LOCATION_REQUEST = 1001;
+
     private MapView mapView;
+
+    private FusedLocationProviderClient locationClient;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,6 +53,10 @@ public class MapActivity extends Activity {
         super.onCreate(savedInstanceState);
 
         MapLibre.getInstance(this);
+
+        locationClient =
+                LocationServices
+                        .getFusedLocationProviderClient(this);
 
         createInterface();
 
@@ -48,7 +70,9 @@ public class MapActivity extends Activity {
                                     "https://tiles.openfreemap.org/styles/liberty"
                             ),
                     style -> {
-                        // Карта загружена
+
+                        enableLocation();
+
                     }
             );
         });
@@ -89,6 +113,7 @@ public class MapActivity extends Activity {
         title.setText("КАРТА");
         title.setTextSize(22);
         title.setTextColor(ORANGE);
+
         title.setTypeface(
                 Typeface.DEFAULT,
                 Typeface.BOLD
@@ -136,6 +161,146 @@ public class MapActivity extends Activity {
         );
 
         setContentView(root);
+    }
+
+    private void enableLocation() {
+
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+        ) != PackageManager.PERMISSION_GRANTED
+                &&
+                ContextCompat.checkSelfPermission(
+                        this,
+                        Manifest.permission.ACCESS_COARSE_LOCATION
+                ) != PackageManager.PERMISSION_GRANTED) {
+
+            ActivityCompat.requestPermissions(
+                    this,
+                    new String[]{
+                            Manifest.permission.ACCESS_FINE_LOCATION,
+                            Manifest.permission.ACCESS_COARSE_LOCATION
+                    },
+                    LOCATION_REQUEST
+            );
+
+            return;
+        }
+
+        LocationComponentPlugin locationPlugin =
+                mapView
+                        .getPlugin(
+                                org.maplibre.android.plugins
+                                        .locationcomponent
+                                        .LocationComponentPluginImpl.class
+                        );
+
+        if (locationPlugin == null) {
+            return;
+        }
+
+        LocationComponentOptions options =
+                LocationComponentOptions.builder(this)
+                        .pulseEnabled(true)
+                        .build();
+
+        LocationComponentActivationOptions activationOptions =
+                LocationComponentActivationOptions
+                        .builder(this, mapView)
+                        .locationComponentOptions(options)
+                        .build();
+
+        locationPlugin.activateLocationComponent(
+                activationOptions
+        );
+
+        locationPlugin.setLocationComponentEnabled(true);
+
+        locationPlugin.setCameraMode(
+                org.maplibre.android.location
+                        .CameraMode.TRACKING
+        );
+
+        locationPlugin.setRenderMode(
+                org.maplibre.android.location
+                        .RenderMode.COMPASS
+        );
+
+        showLastLocation();
+    }
+
+    private void showLastLocation() {
+
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+        ) != PackageManager.PERMISSION_GRANTED
+                &&
+                ContextCompat.checkSelfPermission(
+                        this,
+                        Manifest.permission.ACCESS_COARSE_LOCATION
+                ) != PackageManager.PERMISSION_GRANTED) {
+
+            return;
+        }
+
+        locationClient
+                .getLastLocation()
+                .addOnSuccessListener(
+                        location -> {
+
+                            if (location != null) {
+
+                                moveToLocation(location);
+
+                            }
+                        }
+                );
+    }
+
+    private void moveToLocation(
+            Location location) {
+
+        mapView.getMapAsync(
+                mapLibreMap -> {
+
+                    mapLibreMap.animateCamera(
+                            org.maplibre.android.camera.CameraUpdateFactory
+                                    .newLatLngZoom(
+                                            new LatLng(
+                                                    location.getLatitude(),
+                                                    location.getLongitude()
+                                            ),
+                                            15.5
+                                    )
+                    );
+                }
+        );
+    }
+
+    @Override
+    public void onRequestPermissionsResult(
+            int requestCode,
+            String[] permissions,
+            int[] grantResults) {
+
+        super.onRequestPermissionsResult(
+                requestCode,
+                permissions,
+                grantResults
+        );
+
+        if (requestCode == LOCATION_REQUEST) {
+
+            if (grantResults.length > 0
+                    &&
+                    grantResults[0]
+                            == PackageManager.PERMISSION_GRANTED) {
+
+                enableLocation();
+
+            }
+        }
     }
 
     private int dp(int value) {
@@ -217,9 +382,10 @@ public class MapActivity extends Activity {
         );
 
         if (mapView != null) {
+
             mapView.onSaveInstanceState(
                     outState
             );
         }
     }
-}
+            }

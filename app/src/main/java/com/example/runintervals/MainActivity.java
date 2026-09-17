@@ -7,16 +7,15 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Typeface;
-import android.graphics.drawable.GradientDrawable;
 import android.location.Location;
 import android.os.Bundle;
-import android.os.Handler;
+import android.os.Looper;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
-import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
@@ -25,14 +24,9 @@ import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.Priority;
 
-import org.maplibre.android.MapLibre;
-import org.maplibre.android.camera.CameraPosition;
-import org.maplibre.android.geometry.LatLng;
-import org.maplibre.android.maps.MapLibreMap;
-import org.maplibre.android.maps.MapView;
-import org.maplibre.android.maps.Style;
-
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.List;
 import java.util.Locale;
 
@@ -44,17 +38,11 @@ public class MainActivity extends Activity {
     private static final int CARD =
             Color.rgb(27, 30, 36);
 
-    private static final int CARD_DARK =
-            Color.rgb(22, 24, 29);
+    private static final int FIELD =
+            Color.rgb(34, 37, 44);
 
     private static final int ORANGE =
             Color.rgb(252, 76, 2);
-
-    private static final int GREEN =
-            Color.rgb(54, 194, 117);
-
-    private static final int RED =
-            Color.rgb(229, 72, 77);
 
     private static final int WHITE =
             Color.WHITE;
@@ -62,72 +50,60 @@ public class MainActivity extends Activity {
     private static final int SECONDARY =
             Color.rgb(167, 173, 183);
 
-    private FusedLocationProviderClient locationClient;
+    private static final int GREEN =
+            Color.rgb(54, 194, 117);
+
+    private static final int RED =
+            Color.rgb(229, 72, 77);
+
+    private static final int LOCATION_PERMISSION_REQUEST = 1001;
+
+    private FusedLocationProviderClient fusedLocationClient;
+
     private LocationCallback locationCallback;
 
-    private MapView mapView;
-    private MapLibreMap map;
+    private Location lastLocation;
 
-    private TextView timeText;
-    private TextView distanceText;
-    private TextView paceText;
-    private TextView caloriesText;
-    private TextView statusText;
+    private double totalDistanceMeters = 0;
+
+    private long workoutStartTime = 0;
+
+    private long workoutTimeSeconds = 0;
+
+    private boolean workoutRunning = false;
+
+    private boolean workoutFinished = false;
+
+    private double intervalDistanceMeters = 0;
+
+    private long intervalStartTime = 0;
+
+    private boolean intervalRunning = false;
+
+    private final List<String> savedIntervals =
+            new ArrayList<>();
+
+    private final Deque<LocationPoint> recentLocations =
+            new ArrayDeque<>();
+
+    private TextView timeValue;
+    private TextView distanceValue;
+    private TextView currentPaceValue;
+    private TextView totalPaceValue;
+    private TextView intervalPaceValue;
+    private TextView statusValue;
     private TextView intervalsText;
 
     private Button startButton;
     private Button stopButton;
     private Button finishButton;
 
-    private boolean workoutStarted = false;
-    private boolean intervalRunning = false;
+    private SharedPreferences settings;
 
-    private long totalTimeSeconds = 0;
-    private long intervalStartTime = 0;
-
-    private float totalDistance = 0;
-    private float intervalStartDistance = 0;
-
-    private Location lastLocation;
-
-    private double weight = 60;
-
-    private int intervalNumber = 0;
-
-    private final ArrayList<String> intervalResults =
-            new ArrayList<>();
-
-    private final Handler timerHandler =
-            new Handler();
-
-    private long workoutStartTime = 0;
-
-    private final Runnable timerRunnable =
-            new Runnable() {
-
-                @Override
-                public void run() {
-
-                    if (workoutStarted) {
-
-                        long now =
-                                System.currentTimeMillis();
-
-                        totalTimeSeconds =
-                                (now - workoutStartTime)
-                                        / 1000;
-
-                        updateStats();
-
-                        timerHandler.postDelayed(
-                                this,
-                                1000
-                        );
-                    }
-                }
-            };
+    private int paceWindowSeconds = 10;
 
     private int dp(float value) {
+
         return (int) (
                 value *
                         getResources()
@@ -136,71 +112,109 @@ public class MainActivity extends Activity {
         );
     }
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+    private android.graphics.drawable.GradientDrawable background(
+            int color,
+            float radius) {
 
-        MapLibre.getInstance(this);
+        android.graphics.drawable.GradientDrawable drawable =
+                new android.graphics.drawable.GradientDrawable();
 
-        locationClient =
-                LocationServices
-                        .getFusedLocationProviderClient(this);
+        drawable.setColor(color);
 
-        loadWeight();
+        drawable.setCornerRadius(
+                dp(radius)
+        );
 
-        createInterface();
-
-        createLocationCallback();
-
-        requestLocationPermission();
+        return drawable;
     }
 
-    private void loadWeight() {
+    @Override
+    protected void onCreate(
+            Bundle savedInstanceState) {
 
-        SharedPreferences prefs =
+        super.onCreate(savedInstanceState);
+
+        settings =
                 getSharedPreferences(
-                        "run_data",
+                        "settings",
                         MODE_PRIVATE
                 );
 
-        weight =
-                Double.longBitsToDouble(
-                        prefs.getLong(
-                                "weight",
-                                Double.doubleToLongBits(60.0)
-                        )
+        paceWindowSeconds =
+                settings.getInt(
+                        "pace_window",
+                        10
                 );
+
+        if (paceWindowSeconds < 3) {
+            paceWindowSeconds = 3;
+        }
+
+        if (paceWindowSeconds > 60) {
+            paceWindowSeconds = 60;
+        }
+
+        fusedLocationClient =
+                LocationServices
+                        .getFusedLocationProviderClient(
+                                this
+                        );
+
+        createLocationCallback();
+
+        createInterface();
+
+        checkLocationPermission();
     }
 
-    private void requestLocationPermission() {
+    @Override
+    protected void onResume() {
 
-        if (checkSelfPermission(
-                Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
+        super.onResume();
 
-            requestPermissions(
-                    new String[]{
-                            Manifest.permission.ACCESS_FINE_LOCATION,
-                            Manifest.permission.ACCESS_COARSE_LOCATION
-                    },
-                    100
-            );
+        paceWindowSeconds =
+                settings.getInt(
+                        "pace_window",
+                        10
+                );
+
+        if (paceWindowSeconds < 3) {
+            paceWindowSeconds = 3;
+        }
+
+        if (paceWindowSeconds > 60) {
+            paceWindowSeconds = 60;
+        }
+
+        if (workoutRunning) {
+            startLocationUpdates();
         }
     }
 
-    private TextView createText(
-            String text,
+    @Override
+    protected void onPause() {
+
+        super.onPause();
+
+        if (!workoutRunning) {
+            stopLocationUpdates();
+        }
+    }
+
+    private TextView text(
+            String value,
             float size,
             boolean bold) {
 
         TextView view =
                 new TextView(this);
 
-        view.setText(text);
+        view.setText(value);
         view.setTextSize(size);
         view.setTextColor(WHITE);
 
         if (bold) {
+
             view.setTypeface(
                     Typeface.DEFAULT,
                     Typeface.BOLD
@@ -210,209 +224,87 @@ public class MainActivity extends Activity {
         return view;
     }
 
-    private GradientDrawable roundedBackground(
-            int color,
-            float radius) {
+    private TextView metricValue() {
 
-        GradientDrawable drawable =
-                new GradientDrawable();
-
-        drawable.setColor(color);
-        drawable.setCornerRadius(dp(radius));
-
-        return drawable;
-    }
-
-    private Button createButton(String text) {
-
-        Button button =
-                new Button(this);
-
-        button.setText(text);
-        button.setTextSize(13);
-        button.setAllCaps(false);
-        button.setTextColor(WHITE);
-
-        button.setGravity(
-                Gravity.CENTER
-        );
-
-        button.setPadding(
-                dp(4),
-                0,
-                dp(4),
-                0
-        );
-
-        button.setMinHeight(0);
-        button.setMinimumHeight(0);
-
-        button.setBackground(
-                roundedBackground(
-                        CARD,
-                        12
-                )
-        );
-
-        button.setElevation(
-                dp(2)
-        );
-
-        return button;
-    }
-
-    private Button createNavButton(
-            String icon,
-            String text) {
-
-        Button button =
-                createButton(
-                        icon + "\n" + text
-                );
-
-        button.setTextSize(11);
-
-        return button;
-    }
-
-    private TextView createMetric(
-            String label,
-            String value) {
-
-        LinearLayout box =
-                new LinearLayout(this);
-
-        box.setOrientation(
-                LinearLayout.VERTICAL
-        );
-
-        box.setGravity(
-                Gravity.CENTER
-        );
-
-        box.setPadding(
-                dp(5),
-                dp(6),
-                dp(5),
-                dp(6)
-        );
-
-        box.setBackground(
-                roundedBackground(
-                        CARD,
-                        12
-                )
-        );
-
-        TextView labelText =
-                createText(
-                        label,
-                        10,
-                        false
-                );
-
-        labelText.setTextColor(
-                SECONDARY
-        );
-
-        labelText.setGravity(
-                Gravity.CENTER
-        );
-
-        TextView valueText =
-                createText(
-                        value,
-                        19,
+        TextView view =
+                text(
+                        "—",
+                        30,
                         true
                 );
 
-        valueText.setGravity(
+        view.setGravity(
                 Gravity.CENTER
         );
 
-        valueText.setPadding(
-                0,
-                dp(3),
-                0,
-                0
-        );
-
-        box.addView(labelText);
-        box.addView(valueText);
-
-        return createMetricWrapper(box);
+        return view;
     }
 
-    private TextView createMetricWrapper(
-            LinearLayout box) {
+    private LinearLayout metricCard(
+            String title,
+            TextView value) {
 
-        TextView result =
-                new TextView(this);
-
-        result.setVisibility(View.GONE);
-
-        return result;
-    }
-
-    private LinearLayout createMetricBox(
-            String label,
-            String value) {
-
-        LinearLayout box =
+        LinearLayout card =
                 new LinearLayout(this);
 
-        box.setOrientation(
+        card.setOrientation(
                 LinearLayout.VERTICAL
         );
 
-        box.setGravity(
+        card.setGravity(
                 Gravity.CENTER
         );
 
-        box.setPadding(
-                dp(5),
+        card.setBackground(
+                background(
+                        CARD,
+                        14
+                )
+        );
+
+        card.setPadding(
+                dp(8),
+                dp(12),
+                dp(8),
+                dp(12)
+        );
+
+        TextView label =
+                text(
+                        title,
+                        12,
+                        true
+                );
+
+        label.setTextColor(
+                SECONDARY
+        );
+
+        label.setGravity(
+                Gravity.CENTER
+        );
+
+        card.addView(label);
+
+        LinearLayout.LayoutParams valueParams =
+                new LinearLayout.LayoutParams(
+                        -1,
+                        -2
+                );
+
+        valueParams.setMargins(
+                0,
                 dp(7),
-                dp(5),
-                dp(7)
+                0,
+                0
         );
 
-        box.setBackground(
-                roundedBackground(
-                        CARD,
-                        12
-                )
+        card.addView(
+                value,
+                valueParams
         );
 
-        TextView labelText =
-                createText(
-                        label,
-                        10,
-                        false
-                );
-
-        labelText.setTextColor(
-                SECONDARY
-        );
-
-        labelText.setGravity(
-                Gravity.CENTER
-        );
-
-        TextView valueText =
-                createText(
-                        value,
-                        20,
-                        true
-                );
-
-        valueText.setGravity(
-                Gravity.CENTER
-        );
-
-        box.addView(labelText);
-        box.addView(valueText);
-
-        return box;
+        return card;
     }
 
     private void createInterface() {
@@ -426,9 +318,16 @@ public class MainActivity extends Activity {
 
         root.setBackgroundColor(BG);
 
-        // =========================
-        // HEADER
-        // =========================
+        root.setPadding(
+                dp(12),
+                dp(12),
+                dp(12),
+                0
+        );
+
+        // --------------------------------
+        // ЗАГОЛОВОК
+        // --------------------------------
 
         LinearLayout header =
                 new LinearLayout(this);
@@ -441,168 +340,125 @@ public class MainActivity extends Activity {
                 Gravity.CENTER_VERTICAL
         );
 
-        header.setPadding(
-                dp(18),
-                dp(7),
-                dp(18),
-                dp(3)
-        );
-
         TextView title =
-                createText(
-                        "RUN INTERVALS",
-                        22,
+                text(
+                        "RUNINTERVALS",
+                        24,
                         true
                 );
 
-        title.setTextColor(WHITE);
+        title.setTextColor(
+                ORANGE
+        );
 
         header.addView(
                 title,
                 new LinearLayout.LayoutParams(
                         0,
-                        dp(42),
+                        -2,
                         1
                 )
         );
 
-        TextView runner =
-                createText(
-                        "●",
-                        20,
-                        true
-                );
-
-        runner.setTextColor(ORANGE);
-        runner.setGravity(Gravity.CENTER);
-
-        header.addView(
-                runner,
-                new LinearLayout.LayoutParams(
-                        dp(35),
-                        dp(42)
-                )
-        );
-
-        root.addView(header);
-
-        // =========================
-        // STATUS
-        // =========================
-
-        statusText =
-                createText(
-                        "ГОТОВ К ТРЕНИРОВКЕ",
+        statusValue =
+                text(
+                        "ГОТОВ",
                         12,
                         true
                 );
 
-        statusText.setTextColor(
+        statusValue.setTextColor(
                 SECONDARY
         );
 
-        statusText.setGravity(
+        statusValue.setGravity(
                 Gravity.CENTER
         );
 
-        root.addView(
-                statusText,
-                new LinearLayout.LayoutParams(
-                        -1,
-                        dp(30)
+        header.addView(
+                statusValue
+        );
+
+        root.addView(header);
+
+        // --------------------------------
+        // ВРЕМЯ
+        // --------------------------------
+
+        LinearLayout timeCard =
+                new LinearLayout(this);
+
+        timeCard.setOrientation(
+                LinearLayout.VERTICAL
+        );
+
+        timeCard.setGravity(
+                Gravity.CENTER
+        );
+
+        timeCard.setBackground(
+                background(
+                        CARD,
+                        16
                 )
         );
 
-        // =========================
-        // MAP
-        // =========================
+        timeCard.setPadding(
+                dp(12),
+                dp(14),
+                dp(12),
+                dp(14)
+        );
 
-        mapView =
-                new MapView(this);
-
-        mapView.onCreate(null);
-
-        LinearLayout.LayoutParams mapParams =
+        LinearLayout.LayoutParams timeParams =
                 new LinearLayout.LayoutParams(
                         -1,
-                        dp(175)
+                        -2
                 );
 
-        mapParams.setMargins(
-                dp(10),
+        timeParams.setMargins(
                 0,
-                dp(10),
-                dp(6)
+                dp(12),
+                0,
+                0
         );
 
         root.addView(
-                mapView,
-                mapParams
+                timeCard,
+                timeParams
         );
 
-        mapView.getMapAsync(
-                mapLibreMap -> {
-
-                    map = mapLibreMap;
-
-                    mapLibreMap.setStyle(
-                            new Style.Builder()
-                                    .fromUri(
-                                            "https://tiles.openfreemap.org/styles/liberty"
-                                    ),
-                            style -> {
-
-                                mapLibreMap.setCameraPosition(
-                                        new CameraPosition.Builder()
-                                                .target(
-                                                        new LatLng(
-                                                                44.7866,
-                                                                20.4489
-                                                        )
-                                                )
-                                                .zoom(13.0)
-                                                .build()
-                                );
-                            }
-                    );
-                }
-        );
-
-        TextView mapCopyright =
-                createText(
-                        "© OpenFreeMap © OpenStreetMap",
-                        9,
-                        false
+        TextView timeLabel =
+                text(
+                        "ВРЕМЯ",
+                        12,
+                        true
                 );
 
-        mapCopyright.setTextColor(
-                Color.DKGRAY
+        timeLabel.setTextColor(
+                SECONDARY
         );
 
-        mapCopyright.setBackgroundColor(
-                Color.argb(
-                        190,
-                        255,
-                        255,
-                        255
-                )
-        );
+        timeCard.addView(timeLabel);
 
-        mapCopyright.setGravity(
+        timeValue =
+                text(
+                        "00:00",
+                        48,
+                        true
+                );
+
+        timeValue.setGravity(
                 Gravity.CENTER
         );
 
-        root.addView(
-                mapCopyright,
-                new LinearLayout.LayoutParams(
-                        -1,
-                        dp(18)
-                )
+        timeCard.addView(
+                timeValue
         );
 
-        // =========================
-        // METRICS
-        // =========================
+        // --------------------------------
+        // ОСНОВНЫЕ ПОКАЗАТЕЛИ
+        // --------------------------------
 
         LinearLayout metrics =
                 new LinearLayout(this);
@@ -611,292 +467,202 @@ public class MainActivity extends Activity {
                 LinearLayout.VERTICAL
         );
 
-        metrics.setPadding(
+        LinearLayout row1 =
+                new LinearLayout(this);
+
+        row1.setOrientation(
+                LinearLayout.HORIZONTAL
+        );
+
+        distanceValue =
+                metricValue();
+
+        currentPaceValue =
+                metricValue();
+
+        LinearLayout distanceCard =
+                metricCard(
+                        "ДИСТАНЦИЯ, КМ",
+                        distanceValue
+                );
+
+        LinearLayout currentPaceCard =
+                metricCard(
+                        "ТЕКУЩИЙ ПЕЙС",
+                        currentPaceValue
+                );
+
+        LinearLayout.LayoutParams half =
+                new LinearLayout.LayoutParams(
+                        0,
+                        -2,
+                        1
+                );
+
+        half.setMargins(
+                0,
                 dp(10),
                 dp(5),
-                dp(10),
-                dp(5)
-        );
-
-        LinearLayout metricsRow1 =
-                new LinearLayout(this);
-
-        metricsRow1.setOrientation(
-                LinearLayout.HORIZONTAL
-        );
-
-        LinearLayout metricsRow2 =
-                new LinearLayout(this);
-
-        metricsRow2.setOrientation(
-                LinearLayout.HORIZONTAL
-        );
-
-        timeText =
-                createText(
-                        "⏱\n00:00",
-                        20,
-                        true
-                );
-
-        distanceText =
-                createText(
-                        "📍\n0.00 км",
-                        20,
-                        true
-                );
-
-        paceText =
-                createText(
-                        "🏃\n--:--",
-                        20,
-                        true
-                );
-
-        caloriesText =
-                createText(
-                        "🔥\n0 ккал",
-                        20,
-                        true
-                );
-
-        timeText.setGravity(Gravity.CENTER);
-        distanceText.setGravity(Gravity.CENTER);
-        paceText.setGravity(Gravity.CENTER);
-        caloriesText.setGravity(Gravity.CENTER);
-
-        LinearLayout box1 =
-                createMetricBoxView(
-                        "ВРЕМЯ",
-                        timeText
-                );
-
-        LinearLayout box2 =
-                createMetricBoxView(
-                        "ДИСТАНЦИЯ",
-                        distanceText
-                );
-
-        LinearLayout box3 =
-                createMetricBoxView(
-                        "ОБЩИЙ ПЕЙС",
-                        paceText
-                );
-
-        LinearLayout box4 =
-                createMetricBoxView(
-                        "КАЛОРИИ",
-                        caloriesText
-                );
-
-        addMetricToRow(
-                metricsRow1,
-                box1
-        );
-
-        addMetricToRow(
-                metricsRow1,
-                box2
-        );
-
-        addMetricToRow(
-                metricsRow2,
-                box3
-        );
-
-        addMetricToRow(
-                metricsRow2,
-                box4
-        );
-
-        metrics.addView(
-                metricsRow1,
-                new LinearLayout.LayoutParams(
-                        -1,
-                        dp(55)
-                )
-        );
-
-        metrics.addView(
-                metricsRow2,
-                new LinearLayout.LayoutParams(
-                        -1,
-                        dp(55)
-                )
-        );
-
-        root.addView(
-                metrics,
-                new LinearLayout.LayoutParams(
-                        -1,
-                        dp(120)
-                )
-        );
-
-        // =========================
-        // WORKOUT BUTTONS
-        // =========================
-
-        LinearLayout controls =
-                new LinearLayout(this);
-
-        controls.setOrientation(
-                LinearLayout.HORIZONTAL
-        );
-
-        controls.setGravity(
-                Gravity.CENTER
-        );
-
-        controls.setPadding(
-                dp(10),
-                dp(3),
-                dp(10),
-                dp(3)
-        );
-
-        startButton =
-                createButton(
-                        "▶ СТАРТ"
-                );
-
-        stopButton =
-                createButton(
-                        "■ СТОП"
-                );
-
-        finishButton =
-                createButton(
-                        "✓ ФИНИШ"
-                );
-
-        startButton.setTextSize(15);
-        stopButton.setTextSize(13);
-        finishButton.setTextSize(13);
-
-        startButton.setTextColor(WHITE);
-        stopButton.setTextColor(WHITE);
-        finishButton.setTextColor(WHITE);
-
-        startButton.setBackground(
-                roundedBackground(
-                        ORANGE,
-                        14
-                )
-        );
-
-        stopButton.setBackground(
-                roundedBackground(
-                        RED,
-                        14
-                )
-        );
-
-        finishButton.setBackground(
-                roundedBackground(
-                        GREEN,
-                        14
-                )
-        );
-
-        stopButton.setEnabled(false);
-        finishButton.setEnabled(false);
-
-        addControlButton(
-                controls,
-                startButton,
-                1.3f
-        );
-
-        addControlButton(
-                controls,
-                stopButton,
-                0.85f
-        );
-
-        addControlButton(
-                controls,
-                finishButton,
-                0.85f
-        );
-
-        root.addView(
-                controls,
-                new LinearLayout.LayoutParams(
-                        -1,
-                        dp(55)
-                )
-        );
-
-        // =========================
-        // INTERVALS
-        // =========================
-
-        LinearLayout intervalHeader =
-                new LinearLayout(this);
-
-        intervalHeader.setGravity(
-                Gravity.CENTER_VERTICAL
-        );
-
-        intervalHeader.setPadding(
-                dp(14),
-                dp(3),
-                dp(14),
                 0
         );
 
+        row1.addView(
+                distanceCard,
+                half
+        );
+
+        LinearLayout.LayoutParams half2 =
+                new LinearLayout.LayoutParams(
+                        0,
+                        -2,
+                        1
+                );
+
+        half2.setMargins(
+                dp(5),
+                dp(10),
+                0,
+                0
+        );
+
+        row1.addView(
+                currentPaceCard,
+                half2
+        );
+
+        metrics.addView(row1);
+
+        LinearLayout row2 =
+                new LinearLayout(this);
+
+        row2.setOrientation(
+                LinearLayout.HORIZONTAL
+        );
+
+        totalPaceValue =
+                metricValue();
+
+        intervalPaceValue =
+                metricValue();
+
+        LinearLayout totalPaceCard =
+                metricCard(
+                        "ОБЩИЙ ПЕЙС",
+                        totalPaceValue
+                );
+
+        LinearLayout intervalCard =
+                metricCard(
+                        "ПЕЙС ИНТЕРВАЛА",
+                        intervalPaceValue
+                );
+
+        LinearLayout.LayoutParams half3 =
+                new LinearLayout.LayoutParams(
+                        0,
+                        -2,
+                        1
+                );
+
+        half3.setMargins(
+                0,
+                dp(10),
+                dp(5),
+                0
+        );
+
+        row2.addView(
+                totalPaceCard,
+                half3
+        );
+
+        LinearLayout.LayoutParams half4 =
+                new LinearLayout.LayoutParams(
+                        0,
+                        -2,
+                        1
+                );
+
+        half4.setMargins(
+                dp(5),
+                dp(10),
+                0,
+                0
+        );
+
+        row2.addView(
+                intervalCard,
+                half4
+        );
+
+        metrics.addView(row2);
+
+        root.addView(
+                metrics
+        );
+
+        // --------------------------------
+        // ИНТЕРВАЛЫ
+        // --------------------------------
+
+        LinearLayout intervalCard =
+                new LinearLayout(this);
+
+        intervalCard.setOrientation(
+                LinearLayout.VERTICAL
+        );
+
+        intervalCard.setBackground(
+                background(
+                        CARD,
+                        14
+                )
+        );
+
+        intervalCard.setPadding(
+                dp(14),
+                dp(10),
+                dp(14),
+                dp(10)
+        );
+
+        LinearLayout.LayoutParams intervalParams =
+                new LinearLayout.LayoutParams(
+                        -1,
+                        0,
+                        1
+                );
+
+        intervalParams.setMargins(
+                0,
+                dp(10),
+                0,
+                dp(8)
+        );
+
+        root.addView(
+                intervalCard,
+                intervalParams
+        );
+
         TextView intervalTitle =
-                createText(
+                text(
                         "ИНТЕРВАЛЫ",
                         12,
                         true
                 );
 
         intervalTitle.setTextColor(
-                SECONDARY
+                ORANGE
         );
 
-        intervalHeader.addView(
-                intervalTitle,
-                new LinearLayout.LayoutParams(
-                        0,
-                        dp(28),
-                        1
-                )
+        intervalCard.addView(
+                intervalTitle
         );
-
-        TextView intervalHint =
-                createText(
-                        "каждый отрезок",
-                        10,
-                        false
-                );
-
-        intervalHint.setTextColor(
-                SECONDARY
-        );
-
-        intervalHeader.addView(
-                intervalHint
-        );
-
-        root.addView(
-                intervalHeader,
-                new LinearLayout.LayoutParams(
-                        -1,
-                        dp(28)
-                )
-        );
-
-        ScrollView intervalScroll =
-                new ScrollView(this);
-
-        intervalScroll.setFillViewport(true);
 
         intervalsText =
-                createText(
-                        "Пока нет интервалов",
+                text(
+                        "Интервалы ещё не начаты",
                         13,
                         false
                 );
@@ -906,28 +672,109 @@ public class MainActivity extends Activity {
         );
 
         intervalsText.setPadding(
-                dp(14),
-                dp(6),
-                dp(14),
-                dp(8)
+                0,
+                dp(7),
+                0,
+                0
         );
 
-        intervalScroll.addView(
+        intervalCard.addView(
                 intervalsText
         );
 
-        root.addView(
-                intervalScroll,
-                new LinearLayout.LayoutParams(
-                        -1,
-                        0,
-                        1
-                )
+        // --------------------------------
+        // КНОПКИ УПРАВЛЕНИЯ
+        // --------------------------------
+
+        LinearLayout controls =
+                new LinearLayout(this);
+
+        controls.setOrientation(
+                LinearLayout.HORIZONTAL
         );
 
-        // =========================
-        // BOTTOM NAVIGATION
-        // =========================
+        startButton =
+                actionButton(
+                        "START",
+                        ORANGE
+                );
+
+        stopButton =
+                actionButton(
+                        "STOP",
+                        RED
+                );
+
+        finishButton =
+                actionButton(
+                        "ФИНИШ",
+                        GREEN
+                );
+
+        LinearLayout.LayoutParams buttonParams =
+                new LinearLayout.LayoutParams(
+                        0,
+                        dp(52),
+                        1
+                );
+
+        buttonParams.setMargins(
+                0,
+                0,
+                dp(5),
+                0
+        );
+
+        controls.addView(
+                startButton,
+                buttonParams
+        );
+
+        LinearLayout.LayoutParams buttonParams2 =
+                new LinearLayout.LayoutParams(
+                        0,
+                        dp(52),
+                        1
+                );
+
+        buttonParams2.setMargins(
+                dp(5),
+                0,
+                dp(5),
+                0
+        );
+
+        controls.addView(
+                stopButton,
+                buttonParams2
+        );
+
+        LinearLayout.LayoutParams buttonParams3 =
+                new LinearLayout.LayoutParams(
+                        0,
+                        dp(52),
+                        1
+                );
+
+        buttonParams3.setMargins(
+                dp(5),
+                0,
+                0,
+                0
+        );
+
+        controls.addView(
+                finishButton,
+                buttonParams3
+        );
+
+        root.addView(
+                controls
+        );
+
+        // --------------------------------
+        // НИЖНЯЯ НАВИГАЦИЯ
+        // --------------------------------
 
         LinearLayout navigation =
                 new LinearLayout(this);
@@ -941,61 +788,66 @@ public class MainActivity extends Activity {
         );
 
         navigation.setPadding(
+                0,
                 dp(8),
-                dp(4),
-                dp(8),
-                dp(6)
+                0,
+                dp(8)
         );
 
         Button historyButton =
-                createNavButton(
-                        "▣",
+                navigationButton(
                         "История"
                 );
 
         Button statisticsButton =
-                createNavButton(
-                        "▥",
+                navigationButton(
                         "Статистика"
                 );
 
+        Button mapButton =
+                navigationButton(
+                        "Карта"
+                );
+
         Button settingsButton =
-                createNavButton(
-                        "⚙",
+                navigationButton(
                         "Настройки"
                 );
 
-        addNavButton(
-                navigation,
-                historyButton
+        navigation.addView(
+                historyButton,
+                navigationParams()
         );
 
-        addNavButton(
-                navigation,
-                statisticsButton
+        navigation.addView(
+                statisticsButton,
+                navigationParams()
         );
 
-        addNavButton(
-                navigation,
-                settingsButton
+        navigation.addView(
+                mapButton,
+                navigationParams()
+        );
+
+        navigation.addView(
+                settingsButton,
+                navigationParams()
         );
 
         root.addView(
-                navigation,
-                new LinearLayout.LayoutParams(
-                        -1,
-                        dp(58)
-                )
+                navigation
         );
 
-        setContentView(root);
+        // --------------------------------
+        // ОБРАБОТЧИКИ
+        // --------------------------------
 
         startButton.setOnClickListener(
-                v -> startInterval()
+                v -> startWorkout()
         );
 
         stopButton.setOnClickListener(
-                v -> stopInterval()
+                v -> stopWorkout()
         );
 
         finishButton.setOnClickListener(
@@ -1003,145 +855,190 @@ public class MainActivity extends Activity {
         );
 
         historyButton.setOnClickListener(
-                v -> openHistory()
+                v -> startActivity(
+                        new Intent(
+                                this,
+                                HistoryActivity.class
+                        )
+                )
         );
 
         statisticsButton.setOnClickListener(
-                v -> openStatistics()
+                v -> startActivity(
+                        new Intent(
+                                this,
+                                StatisticsActivity.class
+                        )
+                )
+        );
+
+        mapButton.setOnClickListener(
+                v -> openMap()
         );
 
         settingsButton.setOnClickListener(
-                v -> openSettings()
+                v -> startActivity(
+                        new Intent(
+                                this,
+                                SettingsActivity.class
+                        )
+                )
         );
+
+        stopButton.setEnabled(false);
+        finishButton.setEnabled(false);
+
+        setContentView(root);
     }
 
-    private LinearLayout createMetricBoxView(
-            String label,
-            TextView valueView) {
+    private Button actionButton(
+            String title,
+            int color) {
 
-        LinearLayout box =
-                new LinearLayout(this);
+        Button button =
+                new Button(this);
 
-        box.setOrientation(
-                LinearLayout.VERTICAL
+        button.setText(title);
+        button.setTextSize(13);
+        button.setTextColor(WHITE);
+
+        button.setTypeface(
+                Typeface.DEFAULT,
+                Typeface.BOLD
         );
 
-        box.setGravity(
+        button.setAllCaps(false);
+
+        button.setGravity(
                 Gravity.CENTER
         );
 
-        box.setBackground(
-                roundedBackground(
-                        CARD,
+        button.setPadding(
+                0,
+                0,
+                0,
+                0
+        );
+
+        button.setBackground(
+                background(
+                        color,
                         12
                 )
         );
 
-        TextView labelView =
-                createText(
-                        label,
-                        9,
-                        false
-                );
+        return button;
+    }
 
-        labelView.setTextColor(
-                SECONDARY
-        );
+    private Button navigationButton(
+            String title) {
 
-        labelView.setGravity(
+        Button button =
+                new Button(this);
+
+        button.setText(title);
+        button.setTextSize(11);
+        button.setTextColor(SECONDARY);
+
+        button.setAllCaps(false);
+
+        button.setGravity(
                 Gravity.CENTER
         );
 
-        box.addView(
-                labelView,
-                new LinearLayout.LayoutParams(
-                        -1,
-                        dp(18)
-                )
-        );
-
-        box.addView(
-                valueView,
-                new LinearLayout.LayoutParams(
-                        -1,
-                        dp(34)
-                )
-        );
-
-        return box;
-    }
-
-    private void addMetricToRow(
-            LinearLayout row,
-            View view) {
-
-        LinearLayout.LayoutParams params =
-                new LinearLayout.LayoutParams(
-                        0,
-                        -1,
-                        1
-                );
-
-        params.setMargins(
-                dp(3),
-                dp(2),
-                dp(3),
-                dp(2)
-        );
-
-        row.addView(
-                view,
-                params
-        );
-    }
-
-    private void addControlButton(
-            LinearLayout row,
-            Button button,
-            float weight) {
-
-        LinearLayout.LayoutParams params =
-                new LinearLayout.LayoutParams(
-                        0,
-                        dp(48),
-                        weight
-                );
-
-        params.setMargins(
-                dp(3),
+        button.setPadding(
                 0,
-                dp(3),
+                0,
+                0,
                 0
         );
 
-        row.addView(
-                button,
-                params
+        button.setBackgroundColor(
+                Color.TRANSPARENT
+        );
+
+        return button;
+    }
+
+    private LinearLayout.LayoutParams navigationParams() {
+
+        return new LinearLayout.LayoutParams(
+                0,
+                dp(44),
+                1
         );
     }
 
-    private void addNavButton(
-            LinearLayout row,
-            Button button) {
+    // --------------------------------
+    // GPS
+    // --------------------------------
 
-        LinearLayout.LayoutParams params =
-                new LinearLayout.LayoutParams(
-                        0,
-                        dp(50),
-                        1
+    private void checkLocationPermission() {
+
+        if (android.os.Build.VERSION.SDK_INT >= 23) {
+
+            if (checkSelfPermission(
+                    Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+                    &&
+                    checkSelfPermission(
+                            Manifest.permission.ACCESS_COARSE_LOCATION
+                    ) != PackageManager.PERMISSION_GRANTED) {
+
+                requestPermissions(
+                        new String[]{
+                                Manifest.permission.ACCESS_FINE_LOCATION,
+                                Manifest.permission.ACCESS_COARSE_LOCATION
+                        },
+                        LOCATION_PERMISSION_REQUEST
                 );
+            }
+        }
+    }
 
-        params.setMargins(
-                dp(3),
-                0,
-                dp(3),
-                0
+    @Override
+    public void onRequestPermissionsResult(
+            int requestCode,
+            String[] permissions,
+            int[] grantResults) {
+
+        super.onRequestPermissionsResult(
+                requestCode,
+                permissions,
+                grantResults
         );
 
-        row.addView(
-                button,
-                params
-        );
+        if (requestCode ==
+                LOCATION_PERMISSION_REQUEST) {
+
+            if (grantResults.length > 0 &&
+                    (
+                            grantResults[0] ==
+                                    PackageManager.PERMISSION_GRANTED
+                                    ||
+                                    (
+                                            grantResults.length > 1
+                                                    &&
+                                            grantResults[1] ==
+                                                    PackageManager.PERMISSION_GRANTED
+                                    )
+                    )) {
+
+                Toast.makeText(
+                        this,
+                        "GPS разрешён",
+                        Toast.LENGTH_SHORT
+                ).show();
+
+            } else {
+
+                Toast.makeText(
+                        this,
+                        "Для пробежки нужен доступ к GPS",
+                        Toast.LENGTH_LONG
+                ).show();
+            }
+        }
     }
 
     private void createLocationCallback() {
@@ -1160,72 +1057,195 @@ public class MainActivity extends Activity {
                         for (Location location :
                                 result.getLocations()) {
 
-                            if (!intervalRunning) {
-                                continue;
-                            }
-
-                            if (lastLocation != null) {
-
-                                float delta =
-                                        lastLocation.distanceTo(
-                                                location
-                                        );
-
-                                if (delta > 1 &&
-                                        delta < 100) {
-
-                                    totalDistance += delta;
-                                }
-                            }
-
-                            lastLocation =
-                                    location;
-
-                            updateMap(location);
-
-                            updateStats();
+                            processLocation(location);
                         }
                     }
                 };
     }
 
-    private void startInterval() {
+    private void startLocationUpdates() {
 
-        if (!workoutStarted) {
+        if (android.os.Build.VERSION.SDK_INT >= 23) {
 
-            workoutStarted = true;
+            boolean fine =
+                    checkSelfPermission(
+                            Manifest.permission.ACCESS_FINE_LOCATION
+                    ) == PackageManager.PERMISSION_GRANTED;
 
-            totalTimeSeconds = 0;
-            totalDistance = 0;
-            intervalNumber = 0;
+            boolean coarse =
+                    checkSelfPermission(
+                            Manifest.permission.ACCESS_COARSE_LOCATION
+                    ) == PackageManager.PERMISSION_GRANTED;
 
-            intervalResults.clear();
-
-            workoutStartTime =
-                    System.currentTimeMillis();
-
-            timerHandler.post(
-                    timerRunnable
-            );
+            if (!fine && !coarse) {
+                checkLocationPermission();
+                return;
+            }
         }
 
-        intervalRunning = true;
+        LocationRequest request =
+                LocationRequest.create();
 
-        intervalNumber++;
+        request.setInterval(1000);
+        request.setFastestInterval(500);
+        request.setPriority(
+                Priority.PRIORITY_HIGH_ACCURACY
+        );
+        request.setSmallestDisplacement(1f);
 
-        intervalStartTime =
+        fusedLocationClient.requestLocationUpdates(
+                request,
+                locationCallback,
+                Looper.getMainLooper()
+        );
+    }
+
+    private void stopLocationUpdates() {
+
+        if (fusedLocationClient != null &&
+                locationCallback != null) {
+
+            fusedLocationClient
+                    .removeLocationUpdates(
+                            locationCallback
+                    );
+        }
+    }
+
+    private void processLocation(
+            Location location) {
+
+        if (location == null ||
+                !workoutRunning) {
+            return;
+        }
+
+        long now =
                 System.currentTimeMillis();
 
-        intervalStartDistance =
-                totalDistance;
-
-        statusText.setText(
-                "ИНТЕРВАЛ " +
-                        intervalNumber +
-                        " • ВЫПОЛНЯЕТСЯ"
+        recentLocations.addLast(
+                new LocationPoint(
+                        location,
+                        now
+                )
         );
 
-        statusText.setTextColor(
+        removeOldLocations(now);
+
+        // Первый GPS-пункт.
+        if (lastLocation == null) {
+
+            lastLocation =
+                    new Location(location);
+
+            return;
+        }
+
+        float accuracy =
+                location.getAccuracy();
+
+        // Не принимаем явно плохие GPS-точки.
+        if (accuracy > 50f) {
+
+            return;
+        }
+
+        float delta =
+                lastLocation.distanceTo(
+                        location
+                );
+
+        /*
+         * Защита от GPS-скачков.
+         *
+         * При интервале обновления около 1 сек
+         * движение более 100 м за одну точку
+         * считаем ошибкой GPS.
+         */
+        if (delta >= 1f &&
+                delta <= 100f) {
+
+            totalDistanceMeters += delta;
+
+            if (intervalRunning) {
+                intervalDistanceMeters += delta;
+            }
+        }
+
+        lastLocation =
+                new Location(location);
+
+        updateScreen();
+    }
+
+    private void removeOldLocations(
+            long now) {
+
+        long windowMillis =
+                paceWindowSeconds * 1000L;
+
+        while (!recentLocations.isEmpty()) {
+
+            LocationPoint first =
+                    recentLocations.peekFirst();
+
+            if (first == null) {
+                break;
+            }
+
+            if (now - first.timeMillis >
+                    windowMillis) {
+
+                recentLocations.removeFirst();
+
+            } else {
+
+                break;
+            }
+        }
+    }
+
+    // --------------------------------
+    // ТРЕНИРОВКА
+    // --------------------------------
+
+    private void startWorkout() {
+
+        if (workoutRunning) {
+            return;
+        }
+
+        workoutRunning = true;
+        workoutFinished = false;
+
+        workoutStartTime =
+                System.currentTimeMillis();
+
+        workoutTimeSeconds = 0;
+
+        totalDistanceMeters = 0;
+
+        intervalDistanceMeters = 0;
+
+        intervalStartTime = 0;
+
+        intervalRunning = false;
+
+        lastLocation = null;
+
+        recentLocations.clear();
+
+        savedIntervals.clear();
+
+        intervalsText.setText(
+                "Бег начат. Можно начинать интервалы."
+        );
+
+        statusValue.setText(
+                "БЕГ"
+        );
+
+        statusValue.setTextColor(
                 GREEN
         );
 
@@ -1234,9 +1254,130 @@ public class MainActivity extends Activity {
         finishButton.setEnabled(true);
 
         startLocationUpdates();
+
+        updateScreen();
     }
 
-    private void stopInterval() {
+    private void stopWorkout() {
+
+        if (!workoutRunning) {
+            return;
+        }
+
+        workoutRunning = false;
+
+        stopLocationUpdates();
+
+        if (intervalRunning) {
+
+            finishCurrentInterval();
+        }
+
+        long now =
+                System.currentTimeMillis();
+
+        workoutTimeSeconds =
+                Math.max(
+                        0,
+                        (
+                                now -
+                                        workoutStartTime
+                        ) / 1000
+                );
+
+        statusValue.setText(
+                "ПАУЗА"
+        );
+
+        statusValue.setTextColor(
+                SECONDARY
+        );
+
+        startButton.setEnabled(true);
+        stopButton.setEnabled(false);
+        finishButton.setEnabled(true);
+
+        updateScreen();
+    }
+
+    private void finishWorkout() {
+
+        if (!workoutRunning &&
+                workoutStartTime == 0) {
+            return;
+        }
+
+        if (workoutRunning) {
+
+            workoutRunning = false;
+
+            stopLocationUpdates();
+
+            long now =
+                    System.currentTimeMillis();
+
+            workoutTimeSeconds =
+                    Math.max(
+                            0,
+                            (
+                                    now -
+                                            workoutStartTime
+                            ) / 1000
+                    );
+        }
+
+        if (intervalRunning) {
+
+            finishCurrentInterval();
+        }
+
+        workoutFinished = true;
+
+        statusValue.setText(
+                "ФИНИШ"
+        );
+
+        statusValue.setTextColor(
+                ORANGE
+        );
+
+        startButton.setEnabled(true);
+        stopButton.setEnabled(false);
+        finishButton.setEnabled(false);
+
+        double distanceKm =
+                totalDistanceMeters / 1000.0;
+
+        double weight =
+                settings.getFloat(
+                        "weight",
+                        0f
+                );
+
+        double calories =
+                CalorieCalculator.calculate(
+                        distanceKm,
+                        weight
+                );
+
+        RunHistory history =
+                new RunHistory(this);
+
+        history.addRun(
+                distanceKm,
+                workoutTimeSeconds,
+                calories,
+                savedIntervals
+        );
+
+        openResult(
+                distanceKm,
+                workoutTimeSeconds,
+                calories
+        );
+    }
+
+    private void finishCurrentInterval() {
 
         if (!intervalRunning) {
             return;
@@ -1246,150 +1387,371 @@ public class MainActivity extends Activity {
                 System.currentTimeMillis();
 
         long intervalTime =
-                (now - intervalStartTime) / 1000;
-
-        float intervalDistance =
-                totalDistance -
-                        intervalStartDistance;
-
-        double intervalKm =
-                intervalDistance / 1000.0;
-
-        double intervalPace =
-                intervalKm > 0
-                        ? intervalTime / intervalKm
-                        : 0;
-
-        int paceMin =
-                (int) (intervalPace / 60);
-
-        int paceSec =
-                (int) (intervalPace % 60);
-
-        String result =
-                String.format(
-                        Locale.getDefault(),
-                        "Интервал %d\n📍 %.2f км\n⏱ %02d:%02d\n🏃 %02d:%02d мин/км",
-                        intervalNumber,
-                        intervalKm,
-                        intervalTime / 60,
-                        intervalTime % 60,
-                        paceMin,
-                        paceSec
+                Math.max(
+                        1,
+                        (
+                                now -
+                                        intervalStartTime
+                        ) / 1000
                 );
 
-        intervalResults.add(result);
+        double distanceKm =
+                intervalDistanceMeters / 1000.0;
+
+        double paceSeconds =
+                distanceKm > 0
+                        ? intervalTime / distanceKm
+                        : 0;
+
+        String intervalText =
+                String.format(
+                        Locale.getDefault(),
+                        "Интервал %d: %.2f км   %s мин/км",
+                        savedIntervals.size() + 1,
+                        distanceKm,
+                        formatPace(
+                                paceSeconds
+                        )
+                );
+
+        savedIntervals.add(
+                intervalText
+        );
 
         updateIntervalsText();
 
         intervalRunning = false;
 
-        stopLocationUpdates();
+        intervalDistanceMeters = 0;
 
-        statusText.setText(
-                "ПАУЗА • ИНТЕРВАЛ ЗАВЕРШЁН"
+        intervalStartTime = 0;
+
+        intervalPaceValue.setText(
+                "—"
+        );
+    }
+
+    /*
+     * Этот метод оставлен для управления интервалами
+     * внутри приложения.
+     */
+    private void startInterval() {
+
+        if (!workoutRunning ||
+                intervalRunning) {
+            return;
+        }
+
+        intervalRunning = true;
+
+        intervalDistanceMeters = 0;
+
+        intervalStartTime =
+                System.currentTimeMillis();
+
+        intervalPaceValue.setText(
+                "—"
         );
 
-        statusText.setTextColor(
-                SECONDARY
+        intervalsText.setText(
+                "Интервал выполняется..."
         );
-
-        startButton.setEnabled(true);
-        stopButton.setEnabled(false);
-        finishButton.setEnabled(true);
-
-        lastLocation = null;
     }
 
     private void updateIntervalsText() {
 
+        if (savedIntervals.isEmpty()) {
+
+            intervalsText.setText(
+                    "Интервалы ещё не завершены"
+            );
+
+            return;
+        }
+
         StringBuilder builder =
                 new StringBuilder();
 
-        for (String item :
-                intervalResults) {
+        for (String interval :
+                savedIntervals) {
 
-            builder.append(item)
-                    .append("\n\n");
+            builder.append(
+                    interval
+            );
+
+            builder.append("\n");
         }
 
         if (intervalRunning) {
 
             builder.append(
-                    "Интервал "
-            )
-            .append(intervalNumber)
-            .append(
-                    " • выполняется..."
+                    "\nТекущий интервал..."
             );
         }
 
-        if (builder.length() == 0) {
+        intervalsText.setText(
+                builder.toString()
+        );
+    }
 
-            intervalsText.setText(
-                    "Пока нет интервалов"
+    // --------------------------------
+    // ЭКРАН
+    // --------------------------------
+
+    private void updateScreen() {
+
+        long elapsed;
+
+        if (workoutRunning) {
+
+            elapsed =
+                    (
+                            System.currentTimeMillis()
+                                    -
+                            workoutStartTime
+                    ) / 1000;
+
+            workoutTimeSeconds =
+                    elapsed;
+
+        } else {
+
+            elapsed =
+                    workoutTimeSeconds;
+        }
+
+        timeValue.setText(
+                formatTime(elapsed)
+        );
+
+        double distanceKm =
+                totalDistanceMeters / 1000.0;
+
+        distanceValue.setText(
+                String.format(
+                        Locale.getDefault(),
+                        "%.2f",
+                        distanceKm
+                )
+        );
+
+        double totalPaceSeconds =
+                distanceKm > 0
+                        ? elapsed / distanceKm
+                        : 0;
+
+        if (totalPaceSeconds > 0) {
+
+            totalPaceValue.setText(
+                    formatPace(
+                            totalPaceSeconds
+                    )
             );
 
         } else {
 
-            intervalsText.setText(
-                    builder.toString()
+            totalPaceValue.setText(
+                    "—"
             );
         }
-    }
 
-    private void finishWorkout() {
+        double currentPaceSeconds =
+                calculateCurrentPace();
 
-        if (!workoutStarted) {
-            return;
+        if (currentPaceSeconds > 0) {
+
+            currentPaceValue.setText(
+                    formatPace(
+                            currentPaceSeconds
+                    )
+            );
+
+        } else {
+
+            currentPaceValue.setText(
+                    "—"
+            );
         }
 
         if (intervalRunning) {
-            stopInterval();
+
+            long intervalSeconds =
+                    Math.max(
+                            1,
+                            (
+                                    System.currentTimeMillis()
+                                            -
+                                    intervalStartTime
+                            ) / 1000
+                    );
+
+            double intervalKm =
+                    intervalDistanceMeters / 1000.0;
+
+            if (intervalKm > 0) {
+
+                double pace =
+                        intervalSeconds /
+                                intervalKm;
+
+                intervalPaceValue.setText(
+                        formatPace(pace)
+                );
+            }
+        }
+    }
+
+    /*
+     * Текущий пейс рассчитывается только
+     * по GPS-точкам за последние X секунд.
+     *
+     * X берётся из:
+     * SharedPreferences "settings"
+     * ключ "pace_window".
+     */
+    private double calculateCurrentPace() {
+
+        if (recentLocations.size() < 2) {
+            return 0;
         }
 
-        double km =
-                totalDistance / 1000.0;
+        LocationPoint first =
+                recentLocations.peekFirst();
 
-        double calories =
-                CalorieCalculator.calculate(
-                        km,
-                        weight
+        LocationPoint last =
+                recentLocations.peekLast();
+
+        if (first == null ||
+                last == null) {
+            return 0;
+        }
+
+        long elapsedMillis =
+                last.timeMillis -
+                        first.timeMillis;
+
+        if (elapsedMillis < 1000) {
+            return 0;
+        }
+
+        double distance = 0;
+
+        Location previous =
+                first.location;
+
+        for (LocationPoint point :
+                recentLocations) {
+
+            if (point == first) {
+                continue;
+            }
+
+            float delta =
+                    previous.distanceTo(
+                            point.location
+                    );
+
+            if (delta >= 1 &&
+                    delta <= 100) {
+
+                distance += delta;
+            }
+
+            previous =
+                    point.location;
+        }
+
+        if (distance < 3) {
+            return 0;
+        }
+
+        double distanceKm =
+                distance / 1000.0;
+
+        double seconds =
+                elapsedMillis / 1000.0;
+
+        return seconds /
+                distanceKm;
+    }
+
+    private String formatTime(
+            long seconds) {
+
+        long hours =
+                seconds / 3600;
+
+        long minutes =
+                (seconds % 3600) / 60;
+
+        long secs =
+                seconds % 60;
+
+        if (hours > 0) {
+
+            return String.format(
+                    Locale.getDefault(),
+                    "%02d:%02d:%02d",
+                    hours,
+                    minutes,
+                    secs
+            );
+        }
+
+        return String.format(
+                Locale.getDefault(),
+                "%02d:%02d",
+                minutes,
+                secs
+        );
+    }
+
+    private String formatPace(
+            double secondsPerKm) {
+
+        if (secondsPerKm <= 0 ||
+                Double.isNaN(secondsPerKm) ||
+                Double.isInfinite(secondsPerKm)) {
+
+            return "—";
+        }
+
+        int totalSeconds =
+                (int) Math.round(
+                        secondsPerKm
                 );
 
-        RunHistory history =
-                new RunHistory(this);
+        int minutes =
+                totalSeconds / 60;
 
-        List<String> savedIntervals =
-                new ArrayList<>(
-                        intervalResults
-                );
+        int seconds =
+                totalSeconds % 60;
 
-        history.addRun(
-                km,
-                totalTimeSeconds,
-                calories,
-                savedIntervals
+        return String.format(
+                Locale.getDefault(),
+                "%02d:%02d",
+                minutes,
+                seconds
         );
+    }
 
-        workoutStarted = false;
-        intervalRunning = false;
+    private String formatDistance() {
 
-        timerHandler.removeCallbacks(
-                timerRunnable
+        return String.format(
+                Locale.getDefault(),
+                "%.2f",
+                totalDistanceMeters / 1000.0
         );
+    }
 
-        statusText.setText(
-                "ТРЕНИРОВКА ЗАВЕРШЕНА"
-        );
+    // --------------------------------
+    // РЕЗУЛЬТАТ
+    // --------------------------------
 
-        statusText.setTextColor(
-                GREEN
-        );
-
-        startButton.setEnabled(true);
-        stopButton.setEnabled(false);
-        finishButton.setEnabled(false);
+    private void openResult(
+            double distanceKm,
+            long timeSeconds,
+            double calories) {
 
         Intent intent =
                 new Intent(
@@ -1399,12 +1761,12 @@ public class MainActivity extends Activity {
 
         intent.putExtra(
                 "distance",
-                km
+                distanceKm
         );
 
         intent.putExtra(
                 "time",
-                totalTimeSeconds
+                timeSeconds
         );
 
         intent.putExtra(
@@ -1412,223 +1774,63 @@ public class MainActivity extends Activity {
                 calories
         );
 
+        intent.putStringArrayListExtra(
+                "intervals",
+                new ArrayList<>(
+                        savedIntervals
+                )
+        );
+
         startActivity(intent);
     }
 
-    private void startLocationUpdates() {
+    // --------------------------------
+    // КАРТА
+    // --------------------------------
 
-        if (checkSelfPermission(
-                Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
+    private void openMap() {
 
-            return;
-        }
+        try {
 
-        LocationRequest request =
-                new LocationRequest.Builder(
-                        Priority.PRIORITY_HIGH_ACCURACY,
-                        2000
-                )
-                        .setMinUpdateIntervalMillis(
-                                1000
-                        )
-                        .build();
+            Intent intent =
+                    new Intent(
+                            this,
+                            Class.forName(
+                                    "com.example.runintervals.MapActivity"
+                            )
+                    );
 
-        locationClient.requestLocationUpdates(
-                request,
-                locationCallback,
-                getMainLooper()
-        );
-    }
+            startActivity(intent);
 
-    private void stopLocationUpdates() {
+        } catch (Exception e) {
 
-        locationClient.removeLocationUpdates(
-                locationCallback
-        );
-    }
-
-    private void updateMap(
-            Location location) {
-
-        if (map == null) {
-            return;
-        }
-
-        LatLng point =
-                new LatLng(
-                        location.getLatitude(),
-                        location.getLongitude()
-                );
-
-        map.setCameraPosition(
-                new CameraPosition.Builder()
-                        .target(point)
-                        .zoom(16.0)
-                        .build()
-        );
-    }
-
-    private void updateStats() {
-
-        timeText.setText(
-                String.format(
-                        Locale.getDefault(),
-                        "%02d:%02d",
-                        totalTimeSeconds / 60,
-                        totalTimeSeconds % 60
-                )
-        );
-
-        double km =
-                totalDistance / 1000.0;
-
-        distanceText.setText(
-                String.format(
-                        Locale.getDefault(),
-                        "%.2f км",
-                        km
-                )
-        );
-
-        double calories =
-                CalorieCalculator.calculate(
-                        km,
-                        weight
-                );
-
-        caloriesText.setText(
-                String.format(
-                        Locale.getDefault(),
-                        "%.0f ккал",
-                        calories
-                )
-        );
-
-        if (km > 0.01 &&
-                totalTimeSeconds > 0) {
-
-            double pace =
-                    totalTimeSeconds / km;
-
-            int paceMin =
-                    (int) (pace / 60);
-
-            int paceSec =
-                    (int) (pace % 60);
-
-            paceText.setText(
-                    String.format(
-                            Locale.getDefault(),
-                            "%02d:%02d",
-                            paceMin,
-                            paceSec
-                    )
-            );
-        }
-
-        updateIntervalsText();
-    }
-
-    private void openHistory() {
-
-        startActivity(
-                new Intent(
-                        this,
-                        HistoryActivity.class
-                )
-        );
-    }
-
-    private void openStatistics() {
-
-        startActivity(
-                new Intent(
-                        this,
-                        StatisticsActivity.class
-                )
-        );
-    }
-
-    private void openSettings() {
-
-        startActivity(
-                new Intent(
-                        this,
-                        SettingsActivity.class
-                )
-        );
-    }
-
-    @Override
-    protected void onStart() {
-
-        super.onStart();
-
-        if (mapView != null) {
-            mapView.onStart();
+            Toast.makeText(
+                    this,
+                    "Карта будет добавлена на следующем шаге",
+                    Toast.LENGTH_SHORT
+            ).show();
         }
     }
 
-    @Override
-    protected void onResume() {
+    // --------------------------------
+    // ВНУТРЕННИЙ КЛАСС GPS-ТОЧКИ
+    // --------------------------------
 
-        super.onResume();
+    private static class LocationPoint {
 
-        if (mapView != null) {
-            mapView.onResume();
-        }
+        final Location location;
 
-        loadWeight();
+        final long timeMillis;
 
-        if (intervalRunning) {
-            updateStats();
-        }
-    }
+        LocationPoint(
+                Location location,
+                long timeMillis) {
 
-    @Override
-    protected void onPause() {
+            this.location =
+                    new Location(location);
 
-        if (mapView != null) {
-            mapView.onPause();
-        }
-
-        super.onPause();
-    }
-
-    @Override
-    protected void onStop() {
-
-        if (mapView != null) {
-            mapView.onStop();
-        }
-
-        super.onStop();
-    }
-
-    @Override
-    protected void onDestroy() {
-
-        timerHandler.removeCallbacks(
-                timerRunnable
-        );
-
-        stopLocationUpdates();
-
-        if (mapView != null) {
-            mapView.onDestroy();
-        }
-
-        super.onDestroy();
-    }
-
-    @Override
-    public void onLowMemory() {
-
-        super.onLowMemory();
-
-        if (mapView != null) {
-            mapView.onLowMemory();
+            this.timeMillis =
+                    timeMillis;
         }
     }
-}
+            }

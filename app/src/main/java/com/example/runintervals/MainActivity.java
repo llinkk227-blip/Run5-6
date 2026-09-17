@@ -42,6 +42,7 @@ public class MainActivity extends Activity {
     private Button pauseButton;
     private Button finishButton;
     private Button settingsButton;
+    private Button historyButton;
 
     private boolean running = false;
     private boolean paused = false;
@@ -76,10 +77,13 @@ public class MainActivity extends Activity {
         locationClient =
                 LocationServices.getFusedLocationProviderClient(this);
 
+        loadWeight();
+
         createInterface();
         createLocationCallback();
 
-        if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+        if (checkSelfPermission(
+                Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
 
             requestPermissions(
@@ -90,6 +94,19 @@ public class MainActivity extends Activity {
                     100
             );
         }
+    }
+
+    private void loadWeight() {
+
+        android.content.SharedPreferences prefs =
+                getSharedPreferences("run_data", MODE_PRIVATE);
+
+        weight = Double.longBitsToDouble(
+                prefs.getLong(
+                        "weight",
+                        Double.doubleToLongBits(60.0)
+                )
+        );
     }
 
     private void createInterface() {
@@ -173,6 +190,11 @@ public class MainActivity extends Activity {
 
         info.addView(settingsButton);
 
+        historyButton = new Button(this);
+        historyButton.setText("ИСТОРИЯ");
+
+        info.addView(historyButton);
+
         root.addView(info);
 
         setContentView(root);
@@ -184,6 +206,8 @@ public class MainActivity extends Activity {
         finishButton.setOnClickListener(v -> finishRun());
 
         settingsButton.setOnClickListener(v -> openSettings());
+
+        historyButton.setOnClickListener(v -> openHistory());
 
         map.setMultiTouchControls(true);
 
@@ -200,6 +224,17 @@ public class MainActivity extends Activity {
                 new Intent(
                         MainActivity.this,
                         SettingsActivity.class
+                );
+
+        startActivity(intent);
+    }
+
+    private void openHistory() {
+
+        Intent intent =
+                new Intent(
+                        MainActivity.this,
+                        HistoryActivity.class
                 );
 
         startActivity(intent);
@@ -292,6 +327,34 @@ public class MainActivity extends Activity {
     }
 
     private void finishRun() {
+
+        long elapsed =
+                System.currentTimeMillis()
+                        - startTime
+                        - pausedDuration;
+
+        if (elapsed < 0) {
+            elapsed = 0;
+        }
+
+        long seconds = elapsed / 1000;
+
+        double km = distance / 1000.0;
+
+        double calories =
+                CalorieCalculator.calculate(
+                        km,
+                        weight
+                );
+
+        RunHistory runHistory =
+                new RunHistory(this);
+
+        runHistory.addRun(
+                km,
+                seconds,
+                calories
+        );
 
         running = false;
         paused = false;
@@ -437,6 +500,8 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
 
+        loadWeight();
+
         if (running) {
             handler.post(timerRunnable);
         }
@@ -450,4 +515,4 @@ public class MainActivity extends Activity {
         stopLocationUpdates();
         handler.removeCallbacks(timerRunnable);
     }
-        }
+            }

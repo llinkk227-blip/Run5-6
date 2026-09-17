@@ -13,6 +13,8 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.Gravity;
+import android.view.View;
+import android.view.WindowInsets;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -305,12 +307,6 @@ public class MainActivity extends Activity {
 
     private void createInterface() {
 
-        /*
-         * Вся верхняя часть находится в content.
-         * Нижние кнопки находятся отдельно и поэтому
-         * всегда остаются на экране.
-         */
-
         LinearLayout root =
                 new LinearLayout(this);
 
@@ -384,7 +380,7 @@ public class MainActivity extends Activity {
         );
 
         // ==========================================
-        // CONTENT — ЗАНИМАЕТ ВСЁ СВОБОДНОЕ МЕСТО
+        // CONTENT
         // ==========================================
 
         LinearLayout content =
@@ -675,6 +671,10 @@ public class MainActivity extends Activity {
                 LinearLayout.HORIZONTAL
         );
 
+        controls.setGravity(
+                Gravity.CENTER_VERTICAL
+        );
+
         startButton =
                 actionButton(
                         "START",
@@ -763,12 +763,45 @@ public class MainActivity extends Activity {
                 navigationParams()
         );
 
+        /*
+         * ВАЖНО:
+         * Нижняя панель теперь получает дополнительный
+         * отступ снизу под системную навигацию Android.
+         * Поэтому кнопки не уходят под системную панель.
+         */
+
         root.addView(
                 navigation,
                 new LinearLayout.LayoutParams(
                         -1,
                         dp(48)
                 )
+        );
+
+        navigation.setOnApplyWindowInsetsListener(
+                (v, insets) -> {
+
+                    int bottomInset =
+                            insets.getSystemWindowInsetBottom();
+
+                    v.setPadding(
+                            0,
+                            0,
+                            0,
+                            bottomInset
+                    );
+
+                    LinearLayout.LayoutParams params =
+                            (LinearLayout.LayoutParams)
+                                    v.getLayoutParams();
+
+                    params.height =
+                            dp(48) + bottomInset;
+
+                    v.setLayoutParams(params);
+
+                    return insets;
+                }
         );
 
         // ==========================================
@@ -1774,4 +1807,4 @@ public class MainActivity extends Activity {
                     timeMillis;
         }
     }
-                    }
+            }

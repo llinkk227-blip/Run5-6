@@ -36,11 +36,9 @@ import java.util.Locale;
 public class MainActivity extends Activity {
 
     private FusedLocationProviderClient locationClient;
-
     private LocationCallback locationCallback;
 
     private MapView mapView;
-
     private MapLibreMap map;
 
     private TextView timeText;
@@ -58,15 +56,12 @@ public class MainActivity extends Activity {
     private Button statisticsButton;
 
     private boolean workoutStarted = false;
-
     private boolean intervalRunning = false;
 
     private long totalTimeSeconds = 0;
-
     private long intervalStartTime = 0;
 
     private float totalDistance = 0;
-
     private float intervalStartDistance = 0;
 
     private Location lastLocation;
@@ -112,9 +107,6 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        /*
-         * Инициализация MapLibre.
-         */
         MapLibre.getInstance(this);
 
         locationClient =
@@ -172,13 +164,10 @@ public class MainActivity extends Activity {
                 new TextView(this);
 
         view.setText(text);
-
         view.setTextSize(size);
-
         view.setTextColor(Color.WHITE);
 
         if (bold) {
-
             view.setTypeface(
                     Typeface.DEFAULT,
                     Typeface.BOLD
@@ -195,29 +184,21 @@ public class MainActivity extends Activity {
         return view;
     }
 
-    private Button createButton(
-            String text) {
+    private Button createButton(String text) {
 
         Button button =
                 new Button(this);
 
         button.setText(text);
-
         button.setTextSize(15);
-
         button.setAllCaps(false);
 
         button.setBackgroundResource(
                 R.drawable.button_3d
         );
 
-        button.setTextColor(
-                Color.WHITE
-        );
-
-        button.setElevation(
-                8f
-        );
+        button.setTextColor(Color.WHITE);
+        button.setElevation(8f);
 
         return button;
     }
@@ -232,11 +213,7 @@ public class MainActivity extends Activity {
         );
 
         root.setBackgroundColor(
-                Color.rgb(
-                        30,
-                        120,
-                        200
-                )
+                Color.rgb(30, 120, 200)
         );
 
         TextView title =
@@ -279,7 +256,7 @@ public class MainActivity extends Activity {
         mapView =
                 new MapView(this);
 
-        mapView.onCreate(savedInstanceState);
+        mapView.onCreate(null);
 
         root.addView(
                 mapView,
@@ -387,9 +364,7 @@ public class MainActivity extends Activity {
                 Gravity.CENTER
         );
 
-        info.addView(
-                metricsTitle
-        );
+        info.addView(metricsTitle);
 
         LinearLayout row1 =
                 new LinearLayout(this);
@@ -500,9 +475,7 @@ public class MainActivity extends Activity {
                 Gravity.CENTER
         );
 
-        info.addView(
-                intervalTitle
-        );
+        info.addView(intervalTitle);
 
         intervalsText =
                 createText(
@@ -518,9 +491,7 @@ public class MainActivity extends Activity {
                 5
         );
 
-        info.addView(
-                intervalsText
-        );
+        info.addView(intervalsText);
 
         LinearLayout controls =
                 new LinearLayout(this);
@@ -530,22 +501,15 @@ public class MainActivity extends Activity {
         );
 
         startButton =
-                createButton(
-                        "▶ СТАРТ"
-                );
+                createButton("▶ СТАРТ");
 
         stopButton =
-                createButton(
-                        "■ СТОП"
-                );
+                createButton("■ СТОП");
 
         finishButton =
-                createButton(
-                        "✓ ФИНИШ"
-                );
+                createButton("✓ ФИНИШ");
 
         stopButton.setEnabled(false);
-
         finishButton.setEnabled(false);
 
         controls.addView(
@@ -575,9 +539,7 @@ public class MainActivity extends Activity {
                 )
         );
 
-        info.addView(
-                controls
-        );
+        info.addView(controls);
 
         historyButton =
                 createButton(
@@ -594,13 +556,13 @@ public class MainActivity extends Activity {
                         "⚙ Настройки"
                 );
 
-        LinearLayout.LayoutParams bottomButtonParams =
+        LinearLayout.LayoutParams params =
                 new LinearLayout.LayoutParams(
                         -1,
                         -2
                 );
 
-        bottomButtonParams.setMargins(
+        params.setMargins(
                 0,
                 4,
                 0,
@@ -609,29 +571,25 @@ public class MainActivity extends Activity {
 
         info.addView(
                 historyButton,
-                bottomButtonParams
+                params
         );
 
         info.addView(
                 statisticsButton,
-                bottomButtonParams
+                params
         );
 
         info.addView(
                 settingsButton,
-                bottomButtonParams
+                params
         );
 
         TextView bottomSpace =
                 new TextView(this);
 
-        bottomSpace.setHeight(
-                60
-        );
+        bottomSpace.setHeight(60);
 
-        info.addView(
-                bottomSpace
-        );
+        info.addView(bottomSpace);
 
         scroll.addView(info);
 
@@ -701,17 +659,14 @@ public class MainActivity extends Activity {
                                 if (delta > 1 &&
                                         delta < 100) {
 
-                                    totalDistance +=
-                                            delta;
+                                    totalDistance += delta;
                                 }
                             }
 
                             lastLocation =
                                     location;
 
-                            updateMap(
-                                    location
-                            );
+                            updateMap(location);
 
                             updateStats();
                         }
@@ -726,9 +681,7 @@ public class MainActivity extends Activity {
             workoutStarted = true;
 
             totalTimeSeconds = 0;
-
             totalDistance = 0;
-
             intervalNumber = 0;
 
             intervalResults.clear();
@@ -758,9 +711,7 @@ public class MainActivity extends Activity {
         );
 
         startButton.setEnabled(false);
-
         stopButton.setEnabled(true);
-
         finishButton.setEnabled(true);
 
         startLocationUpdates();
@@ -776,32 +727,25 @@ public class MainActivity extends Activity {
                 System.currentTimeMillis();
 
         long intervalTime =
-                (now - intervalStartTime)
-                        / 1000;
+                (now - intervalStartTime) / 1000;
 
         float intervalDistance =
                 totalDistance -
                         intervalStartDistance;
 
         double intervalKm =
-                intervalDistance /
-                        1000.0;
+                intervalDistance / 1000.0;
 
         double intervalPace =
                 intervalKm > 0
-                        ? intervalTime /
-                        intervalKm
+                        ? intervalTime / intervalKm
                         : 0;
 
         int paceMin =
-                (int) (
-                        intervalPace / 60
-                );
+                (int) (intervalPace / 60);
 
         int paceSec =
-                (int) (
-                        intervalPace % 60
-                );
+                (int) (intervalPace % 60);
 
         String result =
                 String.format(
@@ -813,9 +757,7 @@ public class MainActivity extends Activity {
                         paceSec
                 );
 
-        intervalResults.add(
-                result
-        );
+        intervalResults.add(result);
 
         updateIntervalsText();
 
@@ -828,9 +770,7 @@ public class MainActivity extends Activity {
         );
 
         startButton.setEnabled(true);
-
         stopButton.setEnabled(false);
-
         finishButton.setEnabled(true);
 
         lastLocation = null;
@@ -902,7 +842,6 @@ public class MainActivity extends Activity {
         );
 
         workoutStarted = false;
-
         intervalRunning = false;
 
         timerHandler.removeCallbacks(
@@ -914,9 +853,7 @@ public class MainActivity extends Activity {
         );
 
         startButton.setEnabled(true);
-
         stopButton.setEnabled(false);
-
         finishButton.setEnabled(false);
 
         Intent intent =
@@ -1040,14 +977,10 @@ public class MainActivity extends Activity {
                     totalTimeSeconds / km;
 
             int paceMin =
-                    (int) (
-                            pace / 60
-                    );
+                    (int) (pace / 60);
 
             int paceSec =
-                    (int) (
-                            pace % 60
-                    );
+                    (int) (pace % 60);
 
             paceText.setText(
                     String.format(

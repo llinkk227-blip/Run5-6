@@ -9,7 +9,6 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.location.Location;
 import android.os.Bundle;
-import android.os.Handler;
 import android.view.Gravity;
 import android.widget.Button;
 import android.widget.LinearLayout;
@@ -24,6 +23,7 @@ import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.Priority;
 
 import org.osmdroid.config.Configuration;
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
 import org.osmdroid.util.GeoPoint;
 import org.osmdroid.views.MapView;
 import org.osmdroid.views.overlay.Marker;
@@ -56,7 +56,6 @@ public class MainActivity extends Activity {
 
     private long totalTimeSeconds = 0;
     private long intervalStartTime = 0;
-
     private long lastTickTime = 0;
 
     private float totalDistance = 0;
@@ -68,38 +67,8 @@ public class MainActivity extends Activity {
 
     private int intervalNumber = 0;
 
-    private final Handler handler = new Handler();
-
     private final ArrayList<String> intervalResults =
             new ArrayList<>();
-
-    private final Runnable timerRunnable =
-            new Runnable() {
-                @Override
-                public void run() {
-
-                    if (workoutStarted && intervalRunning) {
-
-                        long now =
-                                System.currentTimeMillis();
-
-                        if (lastTickTime > 0) {
-
-                            totalTimeSeconds +=
-                                    (now - lastTickTime) / 1000;
-                        }
-
-                        lastTickTime = now;
-
-                        updateStats();
-
-                        handler.postDelayed(
-                                this,
-                                1000
-                        );
-                    }
-                }
-            };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -174,7 +143,6 @@ public class MainActivity extends Activity {
         );
 
         if (bold) {
-
             view.setTypeface(
                     Typeface.DEFAULT,
                     Typeface.BOLD
@@ -188,8 +156,7 @@ public class MainActivity extends Activity {
         return view;
     }
 
-    private Button createButton(
-            String text) {
+    private Button createButton(String text) {
 
         Button button =
                 new Button(this);
@@ -210,7 +177,6 @@ public class MainActivity extends Activity {
                 LinearLayout.VERTICAL
         );
 
-        // Более тёмный фон
         root.setBackgroundColor(
                 Color.rgb(205, 210, 215)
         );
@@ -246,6 +212,10 @@ public class MainActivity extends Activity {
         root.addView(statusText);
 
         map = new MapView(this);
+
+        map.setTileSource(
+                TileSourceFactory.MAPNIK
+        );
 
         map.setMultiTouchControls(true);
 
@@ -357,7 +327,7 @@ public class MainActivity extends Activity {
 
         paceText =
                 createText(
-                        "🏃\n--:-- мин/км",
+                        "🏃 Общий\n--:-- мин/км",
                         21,
                         true
                 );
@@ -493,9 +463,7 @@ public class MainActivity extends Activity {
                 );
 
         info.addView(historyButton);
-
         info.addView(statisticsButton);
-
         info.addView(settingsButton);
 
         scroll.addView(info);
@@ -559,10 +527,9 @@ public class MainActivity extends Activity {
                             if (lastLocation != null) {
 
                                 float delta =
-                                        lastLocation
-                                                .distanceTo(
-                                                        location
-                                                );
+                                        lastLocation.distanceTo(
+                                                location
+                                        );
 
                                 if (delta > 1 &&
                                         delta < 100) {
@@ -575,7 +542,6 @@ public class MainActivity extends Activity {
                                     location;
 
                             updateMap(location);
-
                             updateStats();
                         }
                     }
@@ -593,10 +559,6 @@ public class MainActivity extends Activity {
             intervalNumber = 0;
 
             intervalResults.clear();
-
-            intervalsText.setText(
-                    "Интервал 1 — выполняется..."
-            );
         }
 
         intervalRunning = true;
@@ -619,14 +581,10 @@ public class MainActivity extends Activity {
         );
 
         startButton.setEnabled(false);
-
         stopButton.setEnabled(true);
-
         finishButton.setEnabled(true);
 
         startLocationUpdates();
-
-        handler.post(timerRunnable);
     }
 
     private void stopInterval() {
@@ -662,9 +620,7 @@ public class MainActivity extends Activity {
         String result =
                 String.format(
                         Locale.getDefault(),
-
                         "Интервал %d: %.2f км   %02d:%02d мин/км",
-
                         intervalNumber,
                         intervalKm,
                         paceMin,
@@ -679,18 +635,12 @@ public class MainActivity extends Activity {
 
         stopLocationUpdates();
 
-        handler.removeCallbacks(
-                timerRunnable
-        );
-
         statusText.setText(
                 "⏸ Интервал завершён"
         );
 
         startButton.setEnabled(true);
-
         stopButton.setEnabled(false);
-
         finishButton.setEnabled(true);
 
         lastLocation = null;
@@ -731,7 +681,6 @@ public class MainActivity extends Activity {
         }
 
         if (intervalRunning) {
-
             stopInterval();
         }
 
@@ -754,7 +703,6 @@ public class MainActivity extends Activity {
         );
 
         workoutStarted = false;
-
         intervalRunning = false;
 
         statusText.setText(
@@ -762,9 +710,7 @@ public class MainActivity extends Activity {
         );
 
         startButton.setEnabled(true);
-
         stopButton.setEnabled(false);
-
         finishButton.setEnabled(false);
 
         Intent intent =
@@ -833,39 +779,28 @@ public class MainActivity extends Activity {
                         location.getLongitude()
                 );
 
-        map.getController().setCenter(
-                point
-        );
+        map.getController().setCenter(point);
 
         Marker marker =
                 new Marker(map);
 
         marker.setPosition(point);
-
-        marker.setTitle(
-                "Вы здесь"
-        );
+        marker.setTitle("Вы здесь");
 
         map.getOverlays().clear();
-
-        map.getOverlays().add(
-                marker
-        );
+        map.getOverlays().add(marker);
 
         map.invalidate();
     }
 
     private void updateStats() {
 
-        long seconds =
-                totalTimeSeconds;
-
         timeText.setText(
                 String.format(
                         Locale.getDefault(),
                         "⏱\n%02d:%02d",
-                        seconds / 60,
-                        seconds % 60
+                        totalTimeSeconds / 60,
+                        totalTimeSeconds % 60
                 )
         );
 
@@ -895,10 +830,10 @@ public class MainActivity extends Activity {
         );
 
         if (km > 0.01 &&
-                seconds > 0) {
+                totalTimeSeconds > 0) {
 
             double pace =
-                    seconds / km;
+                    totalTimeSeconds / km;
 
             int paceMin =
                     (int)(pace / 60);
@@ -917,33 +852,6 @@ public class MainActivity extends Activity {
         }
 
         updateIntervalsText();
-    }
-
-    @Override
-    protected void onResume() {
-
-        super.onResume();
-
-        loadWeight();
-
-        if (intervalRunning) {
-
-            handler.post(
-                    timerRunnable
-            );
-        }
-    }
-
-    @Override
-    protected void onDestroy() {
-
-        super.onDestroy();
-
-        stopLocationUpdates();
-
-        handler.removeCallbacks(
-                timerRunnable
-        );
     }
 
     private void openHistory() {
@@ -974,5 +882,25 @@ public class MainActivity extends Activity {
                         SettingsActivity.class
                 )
         );
+    }
+
+    @Override
+    protected void onResume() {
+
+        super.onResume();
+
+        loadWeight();
+
+        if (intervalRunning) {
+            updateStats();
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+
+        super.onDestroy();
+
+        stopLocationUpdates();
     }
 }

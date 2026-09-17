@@ -29,6 +29,7 @@ import org.osmdroid.util.GeoPoint;
 import org.osmdroid.views.MapView;
 import org.osmdroid.views.overlay.Marker;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Locale;
 
@@ -73,6 +74,8 @@ public class MainActivity extends Activity {
     private final Handler timerHandler =
             new Handler();
 
+    private long workoutStartTime = 0;
+
     private final Runnable timerRunnable =
             new Runnable() {
 
@@ -97,11 +100,42 @@ public class MainActivity extends Activity {
                 }
             };
 
-    private long workoutStartTime = 0;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // Настройка osmdroid
+        File basePath =
+                new File(
+                        getFilesDir(),
+                        "osmdroid"
+                );
+
+        File tileCache =
+                new File(
+                        basePath,
+                        "tiles"
+                );
+
+        if (!basePath.exists()) {
+            basePath.mkdirs();
+        }
+
+        if (!tileCache.exists()) {
+            tileCache.mkdirs();
+        }
+
+        Configuration.getInstance().setOsmdroidBasePath(
+                basePath
+        );
+
+        Configuration.getInstance().setOsmdroidTileCache(
+                tileCache
+        );
+
+        Configuration.getInstance().setUserAgentValue(
+                getPackageName()
+        );
 
         Configuration.getInstance().load(
                 getApplicationContext(),
@@ -109,6 +143,15 @@ public class MainActivity extends Activity {
                         "osmdroid",
                         MODE_PRIVATE
                 )
+        );
+
+        // После load снова фиксируем приватный кэш
+        Configuration.getInstance().setOsmdroidBasePath(
+                basePath
+        );
+
+        Configuration.getInstance().setOsmdroidTileCache(
+                tileCache
         );
 
         Configuration.getInstance().setUserAgentValue(
@@ -192,9 +235,8 @@ public class MainActivity extends Activity {
         button.setTextSize(15);
         button.setAllCaps(false);
 
-        // 3D-стиль
         button.setBackgroundResource(
-                com.example.runintervals.R.drawable.button_3d
+                R.drawable.button_3d
         );
 
         button.setTextColor(

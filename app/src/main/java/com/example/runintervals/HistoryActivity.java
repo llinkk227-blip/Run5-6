@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.widget.Button;
@@ -13,20 +14,50 @@ import android.widget.TextView;
 
 public class HistoryActivity extends Activity {
 
-    private final int BLUE =
-            Color.rgb(30, 120, 200);
+    private static final int BG =
+            Color.rgb(15, 17, 21);
 
-    private final int DARK_BLUE =
-            Color.rgb(18, 78, 130);
+    private static final int CARD =
+            Color.rgb(27, 30, 36);
 
-    private final int CARD_BLUE =
-            Color.rgb(70, 150, 220);
+    private static final int ORANGE =
+            Color.rgb(252, 76, 2);
 
-    private final int WHITE =
+    private static final int WHITE =
             Color.WHITE;
+
+    private static final int SECONDARY =
+            Color.rgb(167, 173, 183);
+
+    private static final int RED =
+            Color.rgb(229, 72, 77);
 
     private LinearLayout list;
     private RunHistory runHistory;
+
+    private int dp(float value) {
+        return (int) (
+                value *
+                        getResources()
+                                .getDisplayMetrics()
+                                .density
+        );
+    }
+
+    private GradientDrawable background(
+            int color,
+            float radius) {
+
+        GradientDrawable drawable =
+                new GradientDrawable();
+
+        drawable.setColor(color);
+        drawable.setCornerRadius(
+                dp(radius)
+        );
+
+        return drawable;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,6 +71,28 @@ public class HistoryActivity extends Activity {
         loadHistory();
     }
 
+    private TextView text(
+            String value,
+            float size,
+            boolean bold) {
+
+        TextView view =
+                new TextView(this);
+
+        view.setText(value);
+        view.setTextSize(size);
+        view.setTextColor(WHITE);
+
+        if (bold) {
+            view.setTypeface(
+                    Typeface.DEFAULT,
+                    Typeface.BOLD
+            );
+        }
+
+        return view;
+    }
+
     private void createInterface() {
 
         LinearLayout root =
@@ -49,106 +102,86 @@ public class HistoryActivity extends Activity {
                 LinearLayout.VERTICAL
         );
 
-        root.setBackgroundColor(BLUE);
+        root.setBackgroundColor(BG);
 
         root.setPadding(
-                16,
-                20,
-                16,
-                15
+                dp(16),
+                dp(16),
+                dp(16),
+                dp(10)
         );
 
-        // Заголовок
+        LinearLayout header =
+                new LinearLayout(this);
+
+        header.setGravity(
+                Gravity.CENTER_VERTICAL
+        );
+
         TextView title =
-                new TextView(this);
+                text(
+                        "ИСТОРИЯ",
+                        26,
+                        true
+                );
 
-        title.setText("ИСТОРИЯ");
-        title.setTextSize(28);
-        title.setTextColor(WHITE);
-
-        title.setTypeface(
-                Typeface.DEFAULT,
-                Typeface.BOLD
-        );
-
-        title.setGravity(
-                Gravity.CENTER
-        );
-
-        title.setPadding(
-                0,
-                5,
-                0,
-                5
-        );
-
-        root.addView(title);
-
-        TextView subtitle =
-                new TextView(this);
-
-        subtitle.setText(
-                "Твои тренировки"
-        );
-
-        subtitle.setTextSize(15);
-        subtitle.setTextColor(
-                Color.argb(
-                        220,
-                        255,
-                        255,
-                        255
+        header.addView(
+                title,
+                new LinearLayout.LayoutParams(
+                        0,
+                        dp(42),
+                        1
                 )
         );
 
-        subtitle.setGravity(
-                Gravity.CENTER
+        Button clearButton =
+                new Button(this);
+
+        clearButton.setText(
+                "Очистить"
+        );
+
+        clearButton.setTextSize(12);
+        clearButton.setAllCaps(false);
+        clearButton.setTextColor(WHITE);
+
+        clearButton.setBackground(
+                background(
+                        RED,
+                        10
+                )
+        );
+
+        header.addView(
+                clearButton,
+                new LinearLayout.LayoutParams(
+                        dp(95),
+                        dp(40)
+                )
+        );
+
+        root.addView(header);
+
+        TextView subtitle =
+                text(
+                        "Твои тренировки",
+                        13,
+                        false
+                );
+
+        subtitle.setTextColor(
+                SECONDARY
         );
 
         subtitle.setPadding(
                 0,
                 0,
                 0,
-                15
+                dp(12)
         );
 
         root.addView(subtitle);
 
-        // Кнопка очистки
-        Button clearButton =
-                new Button(this);
-
-        clearButton.setText(
-                "🗑 Очистить историю"
-        );
-
-        clearButton.setTextColor(WHITE);
-        clearButton.setTextSize(14);
-        clearButton.setAllCaps(false);
-
-        clearButton.setBackgroundColor(
-                DARK_BLUE
-        );
-
-        LinearLayout.LayoutParams clearParams =
-                new LinearLayout.LayoutParams(
-                        -1,
-                        48
-                );
-
-        clearParams.setMargins(
-                0,
-                0,
-                0,
-                12
-        );
-
-        root.addView(
-                clearButton,
-                clearParams
-        );
-
-        // Список
         ScrollView scroll =
                 new ScrollView(this);
 
@@ -163,7 +196,7 @@ public class HistoryActivity extends Activity {
                 0,
                 0,
                 0,
-                20
+                dp(20)
         );
 
         scroll.addView(list);
@@ -193,26 +226,53 @@ public class HistoryActivity extends Activity {
 
         if (data.isEmpty()) {
 
-            TextView empty =
-                    new TextView(this);
+            LinearLayout empty =
+                    new LinearLayout(this);
 
-            empty.setText(
-                    "🏃\n\nПробежек пока нет"
+            empty.setOrientation(
+                    LinearLayout.VERTICAL
             );
-
-            empty.setTextSize(20);
-            empty.setTextColor(WHITE);
 
             empty.setGravity(
                     Gravity.CENTER
             );
 
             empty.setPadding(
-                    20,
-                    80,
-                    20,
-                    20
+                    dp(20),
+                    dp(80),
+                    dp(20),
+                    dp(20)
             );
+
+            TextView icon =
+                    text(
+                            "🏃",
+                            42,
+                            false
+                    );
+
+            icon.setGravity(
+                    Gravity.CENTER
+            );
+
+            empty.addView(icon);
+
+            TextView message =
+                    text(
+                            "Пробежек пока нет",
+                            18,
+                            true
+                    );
+
+            message.setTextColor(
+                    SECONDARY
+            );
+
+            message.setGravity(
+                    Gravity.CENTER
+            );
+
+            empty.addView(message);
 
             list.addView(empty);
 
@@ -225,11 +285,9 @@ public class HistoryActivity extends Activity {
         for (String record :
                 records) {
 
-            if (record.trim().isEmpty()) {
-                continue;
+            if (!record.trim().isEmpty()) {
+                addRunCard(record);
             }
-
-            addRunCard(record);
         }
     }
 
@@ -239,7 +297,6 @@ public class HistoryActivity extends Activity {
         String[] lines =
                 record.split("\\n");
 
-        // Карточка тренировки
         LinearLayout card =
                 new LinearLayout(this);
 
@@ -247,46 +304,36 @@ public class HistoryActivity extends Activity {
                 LinearLayout.VERTICAL
         );
 
-        card.setBackgroundColor(
-                CARD_BLUE
+        card.setBackground(
+                background(
+                        CARD,
+                        16
+                )
         );
 
         card.setPadding(
-                18,
-                16,
-                18,
-                16
+                dp(16),
+                dp(14),
+                dp(16),
+                dp(14)
         );
 
-        // Дата
         if (lines.length > 0) {
 
             TextView date =
-                    new TextView(this);
+                    text(
+                            lines[0],
+                            13,
+                            true
+                    );
 
-            date.setText(
-                    lines[0]
-            );
-
-            date.setTextSize(14);
             date.setTextColor(
-                    Color.argb(
-                            220,
-                            255,
-                            255,
-                            255
-                    )
-            );
-
-            date.setTypeface(
-                    Typeface.DEFAULT,
-                    Typeface.BOLD
+                    SECONDARY
             );
 
             card.addView(date);
         }
 
-        // Главные показатели
         LinearLayout metrics =
                 new LinearLayout(this);
 
@@ -296,9 +343,9 @@ public class HistoryActivity extends Activity {
 
         metrics.setPadding(
                 0,
-                12,
+                dp(12),
                 0,
-                10
+                dp(10)
         );
 
         String distance =
@@ -329,62 +376,32 @@ public class HistoryActivity extends Activity {
                         "ккал"
                 );
 
-        metrics.addView(
-                createMetric(
-                        "ДИСТАНЦИЯ",
-                        distance + " км"
-                ),
-                metricParams()
+        addMetric(
+                metrics,
+                "ДИСТАНЦИЯ",
+                distance + " км"
         );
 
-        metrics.addView(
-                createMetric(
-                        "ВРЕМЯ",
-                        time
-                ),
-                metricParams()
+        addMetric(
+                metrics,
+                "ВРЕМЯ",
+                time
         );
 
-        metrics.addView(
-                createMetric(
-                        "ПЕЙС",
-                        pace
-                ),
-                metricParams()
+        addMetric(
+                metrics,
+                "ПЕЙС",
+                pace
         );
 
-        metrics.addView(
-                createMetric(
-                        "ККАЛ",
-                        calories
-                ),
-                metricParams()
+        addMetric(
+                metrics,
+                "ККАЛ",
+                calories
         );
 
         card.addView(metrics);
 
-        // Разделитель
-        TextView divider =
-                new TextView(this);
-
-        divider.setBackgroundColor(
-                Color.argb(
-                        100,
-                        255,
-                        255,
-                        255
-                )
-        );
-
-        card.addView(
-                divider,
-                new LinearLayout.LayoutParams(
-                        -1,
-                        1
-                )
-        );
-
-        // Заголовок интервалов
         boolean hasIntervals =
                 record.contains(
                         "──── ИНТЕРВАЛЫ ────"
@@ -392,31 +409,25 @@ public class HistoryActivity extends Activity {
 
         if (hasIntervals) {
 
-            TextView intervalHeader =
-                    new TextView(this);
+            TextView header =
+                    text(
+                            "ОТРЕЗКИ",
+                            12,
+                            true
+                    );
 
-            intervalHeader.setText(
-                    "ОТРЕЗКИ"
+            header.setTextColor(
+                    ORANGE
             );
 
-            intervalHeader.setTextSize(14);
-            intervalHeader.setTextColor(WHITE);
-
-            intervalHeader.setTypeface(
-                    Typeface.DEFAULT,
-                    Typeface.BOLD
-            );
-
-            intervalHeader.setPadding(
+            header.setPadding(
                     0,
-                    12,
+                    dp(6),
                     0,
-                    8
+                    dp(7)
             );
 
-            card.addView(
-                    intervalHeader
-            );
+            card.addView(header);
 
             addIntervals(
                     card,
@@ -424,22 +435,80 @@ public class HistoryActivity extends Activity {
             );
         }
 
-        LinearLayout.LayoutParams cardParams =
+        LinearLayout.LayoutParams params =
                 new LinearLayout.LayoutParams(
                         -1,
                         -2
                 );
 
-        cardParams.setMargins(
+        params.setMargins(
                 0,
                 0,
                 0,
-                14
+                dp(12)
         );
 
         list.addView(
                 card,
-                cardParams
+                params
+        );
+    }
+
+    private void addMetric(
+            LinearLayout row,
+            String title,
+            String value) {
+
+        LinearLayout box =
+                new LinearLayout(this);
+
+        box.setOrientation(
+                LinearLayout.VERTICAL
+        );
+
+        box.setGravity(
+                Gravity.CENTER
+        );
+
+        TextView label =
+                text(
+                        title,
+                        9,
+                        false
+                );
+
+        label.setTextColor(
+                SECONDARY
+        );
+
+        label.setGravity(
+                Gravity.CENTER
+        );
+
+        TextView valueText =
+                text(
+                        value,
+                        14,
+                        true
+                );
+
+        valueText.setGravity(
+                Gravity.CENTER
+        );
+
+        box.addView(label);
+        box.addView(valueText);
+
+        LinearLayout.LayoutParams params =
+                new LinearLayout.LayoutParams(
+                        0,
+                        -2,
+                        1
+                );
+
+        row.addView(
+                box,
+                params
         );
     }
 
@@ -450,15 +519,8 @@ public class HistoryActivity extends Activity {
         String[] lines =
                 record.split("\\n");
 
-        boolean readingIntervals =
+        boolean reading =
                 false;
-
-        LinearLayout intervalContainer =
-                new LinearLayout(this);
-
-        intervalContainer.setOrientation(
-                LinearLayout.VERTICAL
-        );
 
         for (int i = 0;
              i < lines.length;
@@ -470,18 +532,15 @@ public class HistoryActivity extends Activity {
             if (line.contains(
                     "──── ИНТЕРВАЛЫ ────")) {
 
-                readingIntervals = true;
+                reading = true;
                 continue;
             }
 
-            if (!readingIntervals ||
+            if (!reading ||
                     line.isEmpty()) {
-
                 continue;
             }
 
-            // Каждая запись начинается
-            // со строки "Интервал N"
             if (line.startsWith(
                     "Интервал ")) {
 
@@ -492,35 +551,33 @@ public class HistoryActivity extends Activity {
                         LinearLayout.VERTICAL
                 );
 
-                interval.setPadding(
-                        12,
-                        9,
-                        12,
-                        9
-                );
-
-                interval.setBackgroundColor(
-                        Color.argb(
-                                80,
-                                255,
-                                255,
-                                255
+                interval.setBackground(
+                        background(
+                                Color.rgb(
+                                        34,
+                                        37,
+                                        44
+                                ),
+                                10
                         )
                 );
 
-                TextView intervalTitle =
-                        new TextView(this);
-
-                intervalTitle.setText(
-                        line
+                interval.setPadding(
+                        dp(12),
+                        dp(8),
+                        dp(12),
+                        dp(8)
                 );
 
-                intervalTitle.setTextSize(15);
-                intervalTitle.setTextColor(WHITE);
+                TextView intervalTitle =
+                        text(
+                                line,
+                                14,
+                                true
+                        );
 
-                intervalTitle.setTypeface(
-                        Typeface.DEFAULT,
-                        Typeface.BOLD
+                intervalTitle.setTextColor(
+                        ORANGE
                 );
 
                 interval.addView(
@@ -542,27 +599,21 @@ public class HistoryActivity extends Activity {
                     if (!detail.isEmpty()) {
 
                         TextView detailText =
-                                new TextView(this);
+                                text(
+                                        detail,
+                                        13,
+                                        false
+                                );
 
-                        detailText.setText(
-                                detail
-                        );
-
-                        detailText.setTextSize(14);
                         detailText.setTextColor(
-                                Color.argb(
-                                        235,
-                                        255,
-                                        255,
-                                        255
-                                )
+                                SECONDARY
                         );
 
                         detailText.setPadding(
                                 0,
-                                2,
+                                dp(2),
                                 0,
-                                2
+                                dp(2)
                         );
 
                         interval.addView(
@@ -573,103 +624,27 @@ public class HistoryActivity extends Activity {
                     j++;
                 }
 
-                LinearLayout.LayoutParams intervalParams =
+                LinearLayout.LayoutParams params =
                         new LinearLayout.LayoutParams(
                                 -1,
                                 -2
                         );
 
-                intervalParams.setMargins(
+                params.setMargins(
                         0,
-                        3,
+                        dp(3),
                         0,
-                        3
+                        dp(3)
                 );
 
-                intervalContainer.addView(
+                card.addView(
                         interval,
-                        intervalParams
+                        params
                 );
 
                 i = j - 1;
             }
         }
-
-        card.addView(
-                intervalContainer
-        );
-    }
-
-    private LinearLayout createMetric(
-            String title,
-            String value) {
-
-        LinearLayout box =
-                new LinearLayout(this);
-
-        box.setOrientation(
-                LinearLayout.VERTICAL
-        );
-
-        box.setGravity(
-                Gravity.CENTER
-        );
-
-        TextView titleText =
-                new TextView(this);
-
-        titleText.setText(title);
-        titleText.setTextSize(10);
-        titleText.setTextColor(
-                Color.argb(
-                        210,
-                        255,
-                        255,
-                        255
-                )
-        );
-
-        titleText.setGravity(
-                Gravity.CENTER
-        );
-
-        box.addView(titleText);
-
-        TextView valueText =
-                new TextView(this);
-
-        valueText.setText(value);
-        valueText.setTextSize(16);
-        valueText.setTextColor(WHITE);
-
-        valueText.setTypeface(
-                Typeface.DEFAULT,
-                Typeface.BOLD
-        );
-
-        valueText.setGravity(
-                Gravity.CENTER
-        );
-
-        valueText.setPadding(
-                0,
-                3,
-                0,
-                0
-        );
-
-        box.addView(valueText);
-
-        return box;
-    }
-
-    private LinearLayout.LayoutParams metricParams() {
-
-        return new LinearLayout.LayoutParams(
-                0,
-                -2,
-                1
-        );
     }
 
     private String extractValue(
@@ -698,7 +673,6 @@ public class HistoryActivity extends Activity {
                             );
 
                     if (index >= 0) {
-
                         result =
                                 result.substring(
                                         0,

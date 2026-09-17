@@ -2,7 +2,9 @@ package com.example.runintervals;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.graphics.Typeface;
 import android.os.Bundle;
+import android.view.Gravity;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -10,52 +12,180 @@ import android.widget.TextView;
 
 public class HistoryActivity extends Activity {
 
+    private LinearLayout list;
+    private RunHistory runHistory;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        LinearLayout root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(24,24,24,24);
+        runHistory = new RunHistory(this);
 
-        TextView title = new TextView(this);
-        title.setText("История пробежек");
-        title.setTextSize(24);
+        LinearLayout root =
+                new LinearLayout(this);
 
-        Button clear = new Button(this);
-        clear.setText("Очистить историю");
+        root.setOrientation(
+                LinearLayout.VERTICAL
+        );
 
-        ScrollView scroll = new ScrollView(this);
+        root.setPadding(
+                20, 25, 20, 20
+        );
 
-        TextView history = new TextView(this);
-        history.setTextSize(17);
+        TextView title =
+                new TextView(this);
 
-        RunHistory runHistory = new RunHistory(this);
-
-        String text = runHistory.getHistory();
-        if (text.isEmpty()) text = "Пробежек пока нет.";
-
-        history.setText(text);
-
-        scroll.addView(history);
+        title.setText("ИСТОРИЯ ПРОБЕЖЕК");
+        title.setTextSize(26);
+        title.setTypeface(
+                Typeface.DEFAULT,
+                Typeface.BOLD
+        );
+        title.setGravity(Gravity.CENTER);
 
         root.addView(title);
-        root.addView(clear);
-        root.addView(scroll,
+
+        Button clearButton =
+                new Button(this);
+
+        clearButton.setText(
+                "🗑 Очистить историю"
+        );
+
+        clearButton.setAllCaps(false);
+
+        root.addView(clearButton);
+
+        ScrollView scroll =
+                new ScrollView(this);
+
+        list =
+                new LinearLayout(this);
+
+        list.setOrientation(
+                LinearLayout.VERTICAL
+        );
+
+        list.setPadding(
+                0, 10, 0, 20
+        );
+
+        scroll.addView(list);
+
+        root.addView(
+                scroll,
                 new LinearLayout.LayoutParams(
-                        -1,0,1));
+                        -1,
+                        0,
+                        1
+                )
+        );
 
         setContentView(root);
 
-        clear.setOnClickListener(v ->
-                new AlertDialog.Builder(this)
-                        .setTitle("Очистить?")
-                        .setMessage("Удалить всю историю пробежек?")
-                        .setPositiveButton("Да",(d,w)->{
-                            runHistory.clear();
-                            history.setText("Пробежек пока нет.");
-                        })
-                        .setNegativeButton("Нет",null)
-                        .show());
+        loadHistory();
+
+        clearButton.setOnClickListener(
+                v -> confirmClear()
+        );
     }
-}
+
+    private void loadHistory() {
+
+        list.removeAllViews();
+
+        String data =
+                runHistory.getHistory();
+
+        if (data.isEmpty()) {
+
+            TextView empty =
+                    new TextView(this);
+
+            empty.setText(
+                    "Пробежек пока нет."
+            );
+
+            empty.setTextSize(19);
+            empty.setGravity(
+                    Gravity.CENTER
+            );
+
+            empty.setPadding(
+                    10, 50, 10, 10
+            );
+
+            list.addView(empty);
+
+            return;
+        }
+
+        String[] records =
+                data.split("\\n\\n");
+
+        for (String record : records) {
+
+            if (record.trim().isEmpty()) {
+                continue;
+            }
+
+            addRunCard(record);
+        }
+    }
+
+    private void addRunCard(String record) {
+
+        LinearLayout card =
+                new LinearLayout(this);
+
+        card.setOrientation(
+                LinearLayout.VERTICAL
+        );
+
+        card.setPadding(
+                20, 18, 20, 18
+        );
+
+        TextView text =
+                new TextView(this);
+
+        text.setText(record);
+        text.setTextSize(18);
+        text.setLineSpacing(
+                0,
+                1.15f
+        );
+
+        card.addView(text);
+
+        list.addView(
+                card,
+                new LinearLayout.LayoutParams(
+                        -1,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+        );
+    }
+
+    private void confirmClear() {
+
+        new AlertDialog.Builder(this)
+                .setTitle("Очистить историю?")
+                .setMessage(
+                        "Все сохранённые пробежки будут удалены."
+                )
+                .setPositiveButton(
+                        "Удалить",
+                        (dialog, which) -> {
+
+                            runHistory.clear();
+                            loadHistory();
+                        }
+                )
+                .setNegativeButton(
+                        "Отмена",
+                        null
+                )
+                .show();
+    }
+                }

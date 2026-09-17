@@ -167,9 +167,7 @@ public class MainActivity extends Activity {
         view.setText(text);
         view.setTextSize(size);
 
-        view.setTextColor(
-                Color.rgb(35, 35, 35)
-        );
+        view.setTextColor(Color.WHITE);
 
         if (bold) {
             view.setTypeface(
@@ -194,6 +192,19 @@ public class MainActivity extends Activity {
         button.setTextSize(15);
         button.setAllCaps(false);
 
+        // 3D-стиль
+        button.setBackgroundResource(
+                com.example.runintervals.R.drawable.button_3d
+        );
+
+        button.setTextColor(
+                Color.WHITE
+        );
+
+        button.setElevation(
+                8f
+        );
+
         return button;
     }
 
@@ -206,7 +217,6 @@ public class MainActivity extends Activity {
                 LinearLayout.VERTICAL
         );
 
-        // СИНИЙ ФОН ВСЕЙ ПРОГРАММЫ
         root.setBackgroundColor(
                 Color.rgb(30, 120, 200)
         );
@@ -221,8 +231,6 @@ public class MainActivity extends Activity {
         title.setGravity(
                 Gravity.CENTER
         );
-
-        title.setTextColor(Color.WHITE);
 
         title.setPadding(
                 10, 15, 10, 10
@@ -241,11 +249,8 @@ public class MainActivity extends Activity {
                 Gravity.CENTER
         );
 
-        statusText.setTextColor(Color.WHITE);
-
         root.addView(statusText);
 
-        // КАРТА
         map = new MapView(this);
 
         map.setTileSource(
@@ -254,7 +259,6 @@ public class MainActivity extends Activity {
 
         map.setMultiTouchControls(true);
 
-        // Синий фон области карты
         map.setBackgroundColor(
                 Color.rgb(70, 150, 220)
         );
@@ -307,8 +311,6 @@ public class MainActivity extends Activity {
                 Gravity.CENTER
         );
 
-        metricsTitle.setTextColor(Color.WHITE);
-
         info.addView(metricsTitle);
 
         LinearLayout row1 =
@@ -339,9 +341,6 @@ public class MainActivity extends Activity {
         distanceText.setGravity(
                 Gravity.CENTER
         );
-
-        timeText.setTextColor(Color.WHITE);
-        distanceText.setTextColor(Color.WHITE);
 
         row1.addView(
                 timeText,
@@ -392,9 +391,6 @@ public class MainActivity extends Activity {
                 Gravity.CENTER
         );
 
-        paceText.setTextColor(Color.WHITE);
-        caloriesText.setTextColor(Color.WHITE);
-
         row2.addView(
                 paceText,
                 new LinearLayout.LayoutParams(
@@ -426,8 +422,6 @@ public class MainActivity extends Activity {
                 Gravity.CENTER
         );
 
-        intervalTitle.setTextColor(Color.WHITE);
-
         info.addView(intervalTitle);
 
         intervalsText =
@@ -440,8 +434,6 @@ public class MainActivity extends Activity {
         intervalsText.setPadding(
                 15, 5, 15, 5
         );
-
-        intervalsText.setTextColor(Color.WHITE);
 
         info.addView(intervalsText);
 
@@ -518,7 +510,6 @@ public class MainActivity extends Activity {
         info.addView(statisticsButton);
         info.addView(settingsButton);
 
-        // НИЖНИЙ ОТСТУП ОТ СИСТЕМНЫХ КНОПОК
         TextView bottomSpace =
                 new TextView(this);
 

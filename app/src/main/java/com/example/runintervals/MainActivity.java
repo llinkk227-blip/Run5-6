@@ -350,7 +350,7 @@ public class MainActivity extends Activity {
                 12,
                 5,
                 12,
-                70
+                15
         );
 
         TextView metricsTitle =
@@ -564,9 +564,9 @@ public class MainActivity extends Activity {
 
         params.setMargins(
                 0,
-                4,
+                3,
                 0,
-                4
+                3
         );
 
         info.addView(
@@ -583,13 +583,6 @@ public class MainActivity extends Activity {
                 settingsButton,
                 params
         );
-
-        TextView bottomSpace =
-                new TextView(this);
-
-        bottomSpace.setHeight(60);
-
-        info.addView(bottomSpace);
 
         scroll.addView(info);
 

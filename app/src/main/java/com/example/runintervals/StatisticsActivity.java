@@ -3,6 +3,7 @@ package com.example.runintervals;
 import android.app.Activity;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.widget.LinearLayout;
@@ -13,158 +14,81 @@ import java.util.Locale;
 
 public class StatisticsActivity extends Activity {
 
-    private final int BLUE =
-            Color.rgb(30, 120, 200);
+    private static final int BG =
+            Color.rgb(15, 17, 21);
 
-    private final int LIGHT_BLUE =
-            Color.rgb(70, 150, 220);
+    private static final int CARD =
+            Color.rgb(27, 30, 36);
 
-    private final int WHITE =
+    private static final int ORANGE =
+            Color.rgb(252, 76, 2);
+
+    private static final int WHITE =
             Color.WHITE;
+
+    private static final int SECONDARY =
+            Color.rgb(167, 173, 183);
+
+    private RunHistory runHistory;
+
+    private int dp(float value) {
+        return (int) (
+                value *
+                        getResources()
+                                .getDisplayMetrics()
+                                .density
+        );
+    }
+
+    private GradientDrawable background(
+            int color,
+            float radius) {
+
+        GradientDrawable drawable =
+                new GradientDrawable();
+
+        drawable.setColor(color);
+        drawable.setCornerRadius(
+                dp(radius)
+        );
+
+        return drawable;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        RunHistory history =
+        runHistory =
                 new RunHistory(this);
 
-        String data =
-                history.getHistory();
+        createInterface();
+    }
 
-        int runs = 0;
-        double totalDistance = 0;
-        long totalTime = 0;
-        double totalCalories = 0;
+    private TextView text(
+            String value,
+            float size,
+            boolean bold) {
 
-        if (!data.isEmpty()) {
+        TextView view =
+                new TextView(this);
 
-            String[] records =
-                    data.split("\\n\\n");
+        view.setText(value);
+        view.setTextSize(size);
+        view.setTextColor(WHITE);
 
-            for (String record : records) {
-
-                if (record.trim().isEmpty()) {
-                    continue;
-                }
-
-                runs++;
-
-                try {
-
-                    String[] lines =
-                            record.split("\\n");
-
-                    if (lines.length >= 3) {
-
-                        // Дистанция
-                        String distanceLine =
-                                lines[1];
-
-                        int kmIndex =
-                                distanceLine.indexOf("км");
-
-                        if (kmIndex >= 0) {
-
-                            String number =
-                                    distanceLine
-                                            .substring(
-                                                    0,
-                                                    kmIndex
-                                            )
-                                            .replace(
-                                                    "📍",
-                                                    ""
-                                            )
-                                            .trim();
-
-                            totalDistance +=
-                                    Double.parseDouble(
-                                            number
-                                    );
-                        }
-
-                        // Время
-                        int timeIndex =
-                                distanceLine.indexOf("⏱");
-
-                        if (timeIndex >= 0) {
-
-                            String timePart =
-                                    distanceLine
-                                            .substring(
-                                                    timeIndex + 1
-                                            )
-                                            .trim();
-
-                            String[] timeParts =
-                                    timePart.split(":");
-
-                            if (timeParts.length == 2) {
-
-                                long minutes =
-                                        Long.parseLong(
-                                                timeParts[0]
-                                        );
-
-                                long seconds =
-                                        Long.parseLong(
-                                                timeParts[1]
-                                        );
-
-                                totalTime +=
-                                        minutes * 60
-                                                + seconds;
-                            }
-                        }
-
-                        // Калории
-                        String caloriesLine =
-                                lines[2];
-
-                        int caloriesIndex =
-                                caloriesLine.indexOf("🔥");
-
-                        if (caloriesIndex >= 0) {
-
-                            String caloriesPart =
-                                    caloriesLine
-                                            .substring(
-                                                    caloriesIndex + 1
-                                            )
-                                            .replace(
-                                                    "ккал",
-                                                    ""
-                                            )
-                                            .trim();
-
-                            totalCalories +=
-                                    Double.parseDouble(
-                                            caloriesPart
-                                    );
-                        }
-                    }
-
-                } catch (Exception ignored) {
-                }
-            }
+        if (bold) {
+            view.setTypeface(
+                    Typeface.DEFAULT,
+                    Typeface.BOLD
+            );
         }
 
-        double averageDistance =
-                runs > 0
-                        ? totalDistance / runs
-                        : 0;
+        return view;
+    }
 
-        long hours =
-                totalTime / 3600;
+    private void createInterface() {
 
-        long minutes =
-                (totalTime % 3600) / 60;
-
-        long seconds =
-                totalTime % 60;
-
-        // Главный контейнер
         LinearLayout root =
                 new LinearLayout(this);
 
@@ -172,9 +96,55 @@ public class StatisticsActivity extends Activity {
                 LinearLayout.VERTICAL
         );
 
-        root.setBackgroundColor(BLUE);
+        root.setBackgroundColor(BG);
 
-        // Прокрутка
+        root.setPadding(
+                dp(16),
+                dp(16),
+                dp(16),
+                dp(16)
+        );
+
+        TextView title =
+                text(
+                        "СТАТИСТИКА",
+                        26,
+                        true
+                );
+
+        title.setPadding(
+                0,
+                0,
+                0,
+                dp(4)
+        );
+
+        root.addView(
+                title
+        );
+
+        TextView subtitle =
+                text(
+                        "Общие показатели тренировок",
+                        13,
+                        false
+                );
+
+        subtitle.setTextColor(
+                SECONDARY
+        );
+
+        subtitle.setPadding(
+                0,
+                0,
+                0,
+                dp(16)
+        );
+
+        root.addView(
+                subtitle
+        );
+
         ScrollView scroll =
                 new ScrollView(this);
 
@@ -185,243 +155,11 @@ public class StatisticsActivity extends Activity {
                 LinearLayout.VERTICAL
         );
 
-        content.setPadding(
-                20,
-                25,
-                20,
-                30
-        );
-
-        // Заголовок
-        TextView title =
-                new TextView(this);
-
-        title.setText("СТАТИСТИКА");
-        title.setTextSize(28);
-        title.setTextColor(WHITE);
-
-        title.setTypeface(
-                Typeface.DEFAULT,
-                Typeface.BOLD
-        );
-
-        title.setGravity(
-                Gravity.CENTER
-        );
-
-        title.setPadding(
-                0,
-                5,
-                0,
-                8
-        );
-
-        content.addView(title);
-
-        TextView subtitle =
-                new TextView(this);
-
-        subtitle.setText(
-                "Твои результаты"
-        );
-
-        subtitle.setTextSize(16);
-        subtitle.setTextColor(
-                Color.argb(
-                        220,
-                        255,
-                        255,
-                        255
-                )
-        );
-
-        subtitle.setGravity(
-                Gravity.CENTER
-        );
-
-        subtitle.setPadding(
-                0,
-                0,
-                0,
-                25
-        );
-
-        content.addView(subtitle);
-
-        // Верхняя пара карточек
-        LinearLayout row1 =
-                createRow();
-
-        row1.addView(
-                createCard(
-                        "🏃",
-                        "ПРОБЕЖКИ",
-                        String.valueOf(runs)
-                ),
-                cardParams()
-        );
-
-        row1.addView(
-                createCard(
-                        "📍",
-                        "ДИСТАНЦИЯ",
-                        String.format(
-                                Locale.getDefault(),
-                                "%.2f км",
-                                totalDistance
-                        )
-                ),
-                cardParams()
-        );
-
-        content.addView(row1);
-
-        // Вторая пара карточек
-        LinearLayout row2 =
-                createRow();
-
-        row2.addView(
-                createCard(
-                        "⏱",
-                        "ВРЕМЯ",
-                        String.format(
-                                Locale.getDefault(),
-                                "%02d:%02d:%02d",
-                                hours,
-                                minutes,
-                                seconds
-                        )
-                ),
-                cardParams()
-        );
-
-        row2.addView(
-                createCard(
-                        "🔥",
-                        "КАЛОРИИ",
-                        String.format(
-                                Locale.getDefault(),
-                                "%.0f",
-                                totalCalories
-                        )
-                ),
-                cardParams()
-        );
-
-        content.addView(row2);
-
-        // Средняя дистанция — большая карточка
-        LinearLayout averageCard =
-                new LinearLayout(this);
-
-        averageCard.setOrientation(
-                LinearLayout.VERTICAL
-        );
-
-        averageCard.setGravity(
-                Gravity.CENTER
-        );
-
-        averageCard.setBackgroundColor(
-                LIGHT_BLUE
-        );
-
-        averageCard.setPadding(
-                20,
-                20,
-                20,
-                20
-        );
-
-        TextView averageIcon =
-                new TextView(this);
-
-        averageIcon.setText("📊");
-        averageIcon.setTextSize(28);
-        averageIcon.setGravity(
-                Gravity.CENTER
-        );
-
-        averageCard.addView(
-                averageIcon
-        );
-
-        TextView averageTitle =
-                new TextView(this);
-
-        averageTitle.setText(
-                "СРЕДНЯЯ ДИСТАНЦИЯ"
-        );
-
-        averageTitle.setTextSize(15);
-        averageTitle.setTextColor(WHITE);
-
-        averageTitle.setTypeface(
-                Typeface.DEFAULT,
-                Typeface.BOLD
-        );
-
-        averageTitle.setGravity(
-                Gravity.CENTER
-        );
-
-        averageCard.addView(
-                averageTitle
-        );
-
-        TextView averageValue =
-                new TextView(this);
-
-        averageValue.setText(
-                String.format(
-                        Locale.getDefault(),
-                        "%.2f км",
-                        averageDistance
-                )
-        );
-
-        averageValue.setTextSize(30);
-        averageValue.setTextColor(WHITE);
-
-        averageValue.setTypeface(
-                Typeface.DEFAULT,
-                Typeface.BOLD
-        );
-
-        averageValue.setGravity(
-                Gravity.CENTER
-        );
-
-        averageValue.setPadding(
-                0,
-                5,
-                0,
-                0
-        );
-
-        averageCard.addView(
-                averageValue
-        );
-
-        LinearLayout.LayoutParams averageParams =
-                new LinearLayout.LayoutParams(
-                        -1,
-                        -2
-                );
-
-        averageParams.setMargins(
-                0,
-                8,
-                0,
-                0
-        );
-
-        content.addView(
-                averageCard,
-                averageParams
-        );
-
         scroll.addView(content);
+
+        addStatistics(
+                content
+        );
 
         root.addView(
                 scroll,
@@ -435,41 +173,270 @@ public class StatisticsActivity extends Activity {
         setContentView(root);
     }
 
-    private LinearLayout createRow() {
+    private void addStatistics(
+            LinearLayout content) {
 
-        LinearLayout row =
-                new LinearLayout(this);
+        String data =
+                runHistory.getHistory();
 
-        row.setOrientation(
-                LinearLayout.HORIZONTAL
-        );
+        if (data.isEmpty()) {
 
-        return row;
-    }
+            LinearLayout card =
+                    createCard();
 
-    private LinearLayout.LayoutParams cardParams() {
+            card.setGravity(
+                    Gravity.CENTER
+            );
 
-        LinearLayout.LayoutParams params =
-                new LinearLayout.LayoutParams(
-                        0,
-                        -2,
-                        1
+            card.setPadding(
+                    dp(20),
+                    dp(50),
+                    dp(20),
+                    dp(50)
+            );
+
+            TextView icon =
+                    text(
+                            "📊",
+                            42,
+                            false
+                    );
+
+            icon.setGravity(
+                    Gravity.CENTER
+            );
+
+            card.addView(icon);
+
+            TextView message =
+                    text(
+                            "Недостаточно данных",
+                            18,
+                            true
+                    );
+
+            message.setTextColor(
+                    SECONDARY
+            );
+
+            message.setGravity(
+                    Gravity.CENTER
+            );
+
+            card.addView(message);
+
+            addCardToContent(
+                    content,
+                    card
+            );
+
+            return;
+        }
+
+        String[] records =
+                data.split("\\n\\n");
+
+        int runs = 0;
+        double totalDistance = 0;
+        long totalTime = 0;
+        double totalCalories = 0;
+
+        double bestPace = Double.MAX_VALUE;
+        double longestRun = 0;
+
+        for (String record : records) {
+
+            if (record.trim().isEmpty()) {
+                continue;
+            }
+
+            runs++;
+
+            double distance =
+                    parseDistance(record);
+
+            long time =
+                    parseTime(record);
+
+            double calories =
+                    parseCalories(record);
+
+            totalDistance += distance;
+            totalTime += time;
+            totalCalories += calories;
+
+            if (distance > longestRun) {
+                longestRun = distance;
+            }
+
+            if (distance > 0 &&
+                    time > 0) {
+
+                double pace =
+                        time / distance;
+
+                if (pace < bestPace) {
+                    bestPace = pace;
+                }
+            }
+        }
+
+        double averageDistance =
+                runs > 0
+                        ? totalDistance / runs
+                        : 0;
+
+        double averagePace =
+                totalDistance > 0
+                        ? totalTime / totalDistance
+                        : 0;
+
+        LinearLayout summary =
+                createCard();
+
+        TextView summaryTitle =
+                text(
+                        "ОБЩИЕ ПОКАЗАТЕЛИ",
+                        12,
+                        true
                 );
 
-        params.setMargins(
-                4,
-                4,
-                4,
-                4
+        summaryTitle.setTextColor(
+                ORANGE
         );
 
-        return params;
+        summary.addView(
+                summaryTitle
+        );
+
+        addStatRow(
+                summary,
+                "Пробежек",
+                String.valueOf(runs)
+        );
+
+        addStatRow(
+                summary,
+                "Общая дистанция",
+                formatDistance(
+                        totalDistance
+                )
+        );
+
+        addStatRow(
+                summary,
+                "Общее время",
+                formatTime(
+                        totalTime
+                )
+        );
+
+        addStatRow(
+                summary,
+                "Калории",
+                String.format(
+                        Locale.getDefault(),
+                        "%.0f ккал",
+                        totalCalories
+                )
+        );
+
+        addCardToContent(
+                content,
+                summary
+        );
+
+        LinearLayout averages =
+                createCard();
+
+        TextView averagesTitle =
+                text(
+                        "СРЕДНИЕ ЗНАЧЕНИЯ",
+                        12,
+                        true
+                );
+
+        averagesTitle.setTextColor(
+                ORANGE
+        );
+
+        averages.addView(
+                averagesTitle
+        );
+
+        addStatRow(
+                averages,
+                "Средняя дистанция",
+                formatDistance(
+                        averageDistance
+                )
+        );
+
+        addStatRow(
+                averages,
+                "Средний пейс",
+                formatPace(
+                        averagePace
+                )
+        );
+
+        addStatRow(
+                averages,
+                "Самая длинная",
+                formatDistance(
+                        longestRun
+                )
+        );
+
+        addCardToContent(
+                content,
+                averages
+        );
+
+        LinearLayout best =
+                createCard();
+
+        TextView bestTitle =
+                text(
+                        "ЛУЧШИЕ РЕЗУЛЬТАТЫ",
+                        12,
+                        true
+                );
+
+        bestTitle.setTextColor(
+                ORANGE
+        );
+
+        best.addView(
+                bestTitle
+        );
+
+        if (bestPace != Double.MAX_VALUE) {
+
+            addStatRow(
+                    best,
+                    "Лучший пейс",
+                    formatPace(
+                            bestPace
+                    )
+            );
+
+        } else {
+
+            addStatRow(
+                    best,
+                    "Лучший пейс",
+                    "--"
+            );
+        }
+
+        addCardToContent(
+                content,
+                best
+        );
     }
 
-    private LinearLayout createCard(
-            String icon,
-            String title,
-            String value) {
+    private LinearLayout createCard() {
 
         LinearLayout card =
                 new LinearLayout(this);
@@ -478,82 +445,281 @@ public class StatisticsActivity extends Activity {
                 LinearLayout.VERTICAL
         );
 
-        card.setGravity(
-                Gravity.CENTER
-        );
-
-        card.setBackgroundColor(
-                LIGHT_BLUE
+        card.setBackground(
+                background(
+                        CARD,
+                        16
+                )
         );
 
         card.setPadding(
-                10,
-                18,
-                10,
-                18
-        );
-
-        TextView iconText =
-                new TextView(this);
-
-        iconText.setText(icon);
-        iconText.setTextSize(27);
-
-        iconText.setGravity(
-                Gravity.CENTER
-        );
-
-        card.addView(
-                iconText
-        );
-
-        TextView titleText =
-                new TextView(this);
-
-        titleText.setText(title);
-        titleText.setTextSize(13);
-        titleText.setTextColor(WHITE);
-
-        titleText.setTypeface(
-                Typeface.DEFAULT,
-                Typeface.BOLD
-        );
-
-        titleText.setGravity(
-                Gravity.CENTER
-        );
-
-        titleText.setPadding(
-                0,
-                4,
-                0,
-                3
-        );
-
-        card.addView(
-                titleText
-        );
-
-        TextView valueText =
-                new TextView(this);
-
-        valueText.setText(value);
-        valueText.setTextSize(23);
-        valueText.setTextColor(WHITE);
-
-        valueText.setTypeface(
-                Typeface.DEFAULT,
-                Typeface.BOLD
-        );
-
-        valueText.setGravity(
-                Gravity.CENTER
-        );
-
-        card.addView(
-                valueText
+                dp(16),
+                dp(16),
+                dp(16),
+                dp(16)
         );
 
         return card;
+    }
+
+    private void addCardToContent(
+            LinearLayout content,
+            LinearLayout card) {
+
+        LinearLayout.LayoutParams params =
+                new LinearLayout.LayoutParams(
+                        -1,
+                        -2
+                );
+
+        params.setMargins(
+                0,
+                0,
+                0,
+                dp(12)
+        );
+
+        content.addView(
+                card,
+                params
+        );
+    }
+
+    private void addStatRow(
+            LinearLayout card,
+            String name,
+            String value) {
+
+        LinearLayout row =
+                new LinearLayout(this);
+
+        row.setGravity(
+                Gravity.CENTER_VERTICAL
+        );
+
+        row.setPadding(
+                0,
+                dp(9),
+                0,
+                dp(9)
+        );
+
+        TextView label =
+                text(
+                        name,
+                        14,
+                        false
+                );
+
+        label.setTextColor(
+                SECONDARY
+        );
+
+        row.addView(
+                label,
+                new LinearLayout.LayoutParams(
+                        0,
+                        -2,
+                        1
+                )
+        );
+
+        TextView result =
+                text(
+                        value,
+                        16,
+                        true
+                );
+
+        result.setGravity(
+                Gravity.RIGHT
+        );
+
+        row.addView(
+                result,
+                new LinearLayout.LayoutParams(
+                        dp(130),
+                        -2
+                )
+        );
+
+        card.addView(row);
+    }
+
+    private double parseDistance(
+            String record) {
+
+        String value =
+                extractBetween(
+                        record,
+                        "📍",
+                        "км"
+                );
+
+        try {
+            return Double.parseDouble(
+                    value.replace(",", ".")
+            );
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    private long parseTime(
+            String record) {
+
+        String value =
+                extractBetween(
+                        record,
+                        "⏱",
+                        null
+                );
+
+        String[] parts =
+                value.trim()
+                        .split(":");
+
+        try {
+
+            if (parts.length == 2) {
+
+                return Long.parseLong(
+                        parts[0].trim()
+                ) * 60
+                        +
+                        Long.parseLong(
+                                parts[1].trim()
+                        );
+            }
+
+        } catch (Exception ignored) {
+        }
+
+        return 0;
+    }
+
+    private double parseCalories(
+            String record) {
+
+        String value =
+                extractBetween(
+                        record,
+                        "🔥",
+                        "ккал"
+                );
+
+        try {
+            return Double.parseDouble(
+                    value.replace(",", ".")
+            );
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    private String extractBetween(
+            String record,
+            String start,
+            String end) {
+
+        String[] lines =
+                record.split("\\n");
+
+        for (String line : lines) {
+
+            int startIndex =
+                    line.indexOf(start);
+
+            if (startIndex < 0) {
+                continue;
+            }
+
+            String result =
+                    line.substring(
+                            startIndex
+                                    + start.length()
+                    ).trim();
+
+            if (end != null) {
+
+                int endIndex =
+                        result.indexOf(end);
+
+                if (endIndex >= 0) {
+
+                    result =
+                            result.substring(
+                                    0,
+                                    endIndex
+                            ).trim();
+                }
+            }
+
+            return result;
+        }
+
+        return "";
+    }
+
+    private String formatDistance(
+            double km) {
+
+        return String.format(
+                Locale.getDefault(),
+                "%.2f км",
+                km
+        );
+    }
+
+    private String formatPace(
+            double secondsPerKm) {
+
+        if (secondsPerKm <= 0) {
+            return "--";
+        }
+
+        int minutes =
+                (int) (secondsPerKm / 60);
+
+        int seconds =
+                (int) (secondsPerKm % 60);
+
+        return String.format(
+                Locale.getDefault(),
+                "%02d:%02d мин/км",
+                minutes,
+                seconds
+        );
+    }
+
+    private String formatTime(
+            long seconds) {
+
+        long hours =
+                seconds / 3600;
+
+        long minutes =
+                (seconds % 3600) / 60;
+
+        long secs =
+                seconds % 60;
+
+        if (hours > 0) {
+
+            return String.format(
+                    Locale.getDefault(),
+                    "%02d:%02d:%02d",
+                    hours,
+                    minutes,
+                    secs
+            );
+        }
+
+        return String.format(
+                Locale.getDefault(),
+                "%02d:%02d",
+                minutes,
+                secs
+        );
     }
 }

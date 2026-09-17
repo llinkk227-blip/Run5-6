@@ -23,21 +23,25 @@ import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.Priority;
 
-import org.osmdroid.config.Configuration;
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
-import org.osmdroid.util.GeoPoint;
-import org.osmdroid.views.MapView;
-import org.osmdroid.views.overlay.Marker;
+import org.maplibre.android.MapLibre;
+import org.maplibre.android.camera.CameraPosition;
+import org.maplibre.android.geometry.LatLng;
+import org.maplibre.android.maps.MapLibreMap;
+import org.maplibre.android.maps.MapView;
+import org.maplibre.android.maps.Style;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Locale;
 
 public class MainActivity extends Activity {
 
     private FusedLocationProviderClient locationClient;
+
     private LocationCallback locationCallback;
-    private MapView map;
+
+    private MapView mapView;
+
+    private MapLibreMap map;
 
     private TextView timeText;
     private TextView distanceText;
@@ -54,12 +58,15 @@ public class MainActivity extends Activity {
     private Button statisticsButton;
 
     private boolean workoutStarted = false;
+
     private boolean intervalRunning = false;
 
     private long totalTimeSeconds = 0;
+
     private long intervalStartTime = 0;
 
     private float totalDistance = 0;
+
     private float intervalStartDistance = 0;
 
     private Location lastLocation;
@@ -88,7 +95,8 @@ public class MainActivity extends Activity {
                                 System.currentTimeMillis();
 
                         totalTimeSeconds =
-                                (now - workoutStartTime) / 1000;
+                                (now - workoutStartTime)
+                                        / 1000;
 
                         updateStats();
 
@@ -105,65 +113,9 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
 
         /*
-         * Настройка osmdroid.
+         * Инициализация MapLibre.
          */
-
-        File basePath =
-                new File(
-                        getFilesDir(),
-                        "osmdroid"
-                );
-
-        File tileCache =
-                new File(
-                        basePath,
-                        "tiles"
-                );
-
-        if (!basePath.exists()) {
-            basePath.mkdirs();
-        }
-
-        if (!tileCache.exists()) {
-            tileCache.mkdirs();
-        }
-
-        Configuration.getInstance().setOsmdroidBasePath(
-                basePath
-        );
-
-        Configuration.getInstance().setOsmdroidTileCache(
-                tileCache
-        );
-
-        /*
-         * Идентификация приложения
-         * при обращении к серверу карт.
-         */
-
-        Configuration.getInstance().setUserAgentValue(
-                "RunIntervals/2.0 (Android; contact: runintervals@example.com)"
-        );
-
-        Configuration.getInstance().load(
-                getApplicationContext(),
-                getSharedPreferences(
-                        "osmdroid",
-                        MODE_PRIVATE
-                )
-        );
-
-        Configuration.getInstance().setOsmdroidBasePath(
-                basePath
-        );
-
-        Configuration.getInstance().setOsmdroidTileCache(
-                tileCache
-        );
-
-        Configuration.getInstance().setUserAgentValue(
-                "RunIntervals/2.0 (Android; contact: runintervals@example.com)"
-        );
+        MapLibre.getInstance(this);
 
         locationClient =
                 LocationServices
@@ -175,18 +127,7 @@ public class MainActivity extends Activity {
 
         createLocationCallback();
 
-        if (checkSelfPermission(
-                Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
-
-            requestPermissions(
-                    new String[]{
-                            Manifest.permission.ACCESS_FINE_LOCATION,
-                            Manifest.permission.ACCESS_COARSE_LOCATION
-                    },
-                    100
-            );
-        }
+        requestLocationPermission();
     }
 
     private void loadWeight() {
@@ -206,6 +147,22 @@ public class MainActivity extends Activity {
                 );
     }
 
+    private void requestLocationPermission() {
+
+        if (checkSelfPermission(
+                Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            requestPermissions(
+                    new String[]{
+                            Manifest.permission.ACCESS_FINE_LOCATION,
+                            Manifest.permission.ACCESS_COARSE_LOCATION
+                    },
+                    100
+            );
+        }
+    }
+
     private TextView createText(
             String text,
             float size,
@@ -215,10 +172,13 @@ public class MainActivity extends Activity {
                 new TextView(this);
 
         view.setText(text);
+
         view.setTextSize(size);
+
         view.setTextColor(Color.WHITE);
 
         if (bold) {
+
             view.setTypeface(
                     Typeface.DEFAULT,
                     Typeface.BOLD
@@ -226,19 +186,25 @@ public class MainActivity extends Activity {
         }
 
         view.setPadding(
-                8, 8, 8, 8
+                8,
+                8,
+                8,
+                8
         );
 
         return view;
     }
 
-    private Button createButton(String text) {
+    private Button createButton(
+            String text) {
 
         Button button =
                 new Button(this);
 
         button.setText(text);
+
         button.setTextSize(15);
+
         button.setAllCaps(false);
 
         button.setBackgroundResource(
@@ -266,7 +232,11 @@ public class MainActivity extends Activity {
         );
 
         root.setBackgroundColor(
-                Color.rgb(30, 120, 200)
+                Color.rgb(
+                        30,
+                        120,
+                        200
+                )
         );
 
         TextView title =
@@ -281,7 +251,10 @@ public class MainActivity extends Activity {
         );
 
         title.setPadding(
-                10, 15, 10, 10
+                10,
+                15,
+                10,
+                10
         );
 
         root.addView(title);
@@ -300,25 +273,16 @@ public class MainActivity extends Activity {
         root.addView(statusText);
 
         /*
-         * КАРТА
+         * MAPLIBRE
          */
 
-        map = new MapView(this);
+        mapView =
+                new MapView(this);
 
-        map.setTileSource(
-                TileSourceFactory.MAPNIK
-        );
-
-        map.setMultiTouchControls(true);
-
-        map.setUseDataConnection(true);
-
-        map.setBackgroundColor(
-                Color.rgb(70, 150, 220)
-        );
+        mapView.onCreate(savedInstanceState);
 
         root.addView(
-                map,
+                mapView,
                 new LinearLayout.LayoutParams(
                         -1,
                         0,
@@ -326,33 +290,46 @@ public class MainActivity extends Activity {
                 )
         );
 
-        GeoPoint startPoint =
-                new GeoPoint(
-                        44.7866,
-                        20.4489
-                );
+        mapView.getMapAsync(
+                mapLibreMap -> {
 
-        map.getController().setZoom(
-                14.0
+                    map = mapLibreMap;
+
+                    mapLibreMap.setStyle(
+                            new Style.Builder()
+                                    .fromUri(
+                                            "https://tiles.openfreemap.org/styles/liberty"
+                                    ),
+                            style -> {
+
+                                mapLibreMap.setCameraPosition(
+                                        new CameraPosition.Builder()
+                                                .target(
+                                                        new LatLng(
+                                                                44.7866,
+                                                                20.4489
+                                                        )
+                                                )
+                                                .zoom(13.0)
+                                                .build()
+                                );
+                            }
+                    );
+                }
         );
-
-        map.getController().setCenter(
-                startPoint
-        );
-
-        /*
-         * Подпись OpenStreetMap.
-         */
 
         TextView mapCopyright =
                 new TextView(this);
 
         mapCopyright.setText(
-                "© OpenStreetMap contributors"
+                "© OpenFreeMap © OpenStreetMap contributors"
         );
 
         mapCopyright.setTextSize(11);
-        mapCopyright.setTextColor(Color.DKGRAY);
+
+        mapCopyright.setTextColor(
+                Color.DKGRAY
+        );
 
         mapCopyright.setBackgroundColor(
                 Color.argb(
@@ -368,7 +345,10 @@ public class MainActivity extends Activity {
         );
 
         mapCopyright.setPadding(
-                6, 2, 6, 2
+                6,
+                2,
+                6,
+                2
         );
 
         root.addView(
@@ -390,7 +370,10 @@ public class MainActivity extends Activity {
         );
 
         info.setPadding(
-                12, 5, 12, 70
+                12,
+                5,
+                12,
+                70
         );
 
         TextView metricsTitle =
@@ -404,7 +387,9 @@ public class MainActivity extends Activity {
                 Gravity.CENTER
         );
 
-        info.addView(metricsTitle);
+        info.addView(
+                metricsTitle
+        );
 
         LinearLayout row1 =
                 new LinearLayout(this);
@@ -515,7 +500,9 @@ public class MainActivity extends Activity {
                 Gravity.CENTER
         );
 
-        info.addView(intervalTitle);
+        info.addView(
+                intervalTitle
+        );
 
         intervalsText =
                 createText(
@@ -525,10 +512,15 @@ public class MainActivity extends Activity {
                 );
 
         intervalsText.setPadding(
-                15, 5, 15, 5
+                15,
+                5,
+                15,
+                5
         );
 
-        info.addView(intervalsText);
+        info.addView(
+                intervalsText
+        );
 
         LinearLayout controls =
                 new LinearLayout(this);
@@ -553,6 +545,7 @@ public class MainActivity extends Activity {
                 );
 
         stopButton.setEnabled(false);
+
         finishButton.setEnabled(false);
 
         controls.addView(
@@ -582,7 +575,9 @@ public class MainActivity extends Activity {
                 )
         );
 
-        info.addView(controls);
+        info.addView(
+                controls
+        );
 
         historyButton =
                 createButton(
@@ -606,7 +601,10 @@ public class MainActivity extends Activity {
                 );
 
         bottomButtonParams.setMargins(
-                0, 4, 0, 4
+                0,
+                4,
+                0,
+                4
         );
 
         info.addView(
@@ -631,7 +629,9 @@ public class MainActivity extends Activity {
                 60
         );
 
-        info.addView(bottomSpace);
+        info.addView(
+                bottomSpace
+        );
 
         scroll.addView(info);
 
@@ -701,14 +701,17 @@ public class MainActivity extends Activity {
                                 if (delta > 1 &&
                                         delta < 100) {
 
-                                    totalDistance += delta;
+                                    totalDistance +=
+                                            delta;
                                 }
                             }
 
                             lastLocation =
                                     location;
 
-                            updateMap(location);
+                            updateMap(
+                                    location
+                            );
 
                             updateStats();
                         }
@@ -723,7 +726,9 @@ public class MainActivity extends Activity {
             workoutStarted = true;
 
             totalTimeSeconds = 0;
+
             totalDistance = 0;
+
             intervalNumber = 0;
 
             intervalResults.clear();
@@ -753,7 +758,9 @@ public class MainActivity extends Activity {
         );
 
         startButton.setEnabled(false);
+
         stopButton.setEnabled(true);
+
         finishButton.setEnabled(true);
 
         startLocationUpdates();
@@ -769,25 +776,32 @@ public class MainActivity extends Activity {
                 System.currentTimeMillis();
 
         long intervalTime =
-                (now - intervalStartTime) / 1000;
+                (now - intervalStartTime)
+                        / 1000;
 
         float intervalDistance =
                 totalDistance -
                         intervalStartDistance;
 
         double intervalKm =
-                intervalDistance / 1000.0;
+                intervalDistance /
+                        1000.0;
 
         double intervalPace =
                 intervalKm > 0
-                        ? intervalTime / intervalKm
+                        ? intervalTime /
+                        intervalKm
                         : 0;
 
         int paceMin =
-                (int)(intervalPace / 60);
+                (int) (
+                        intervalPace / 60
+                );
 
         int paceSec =
-                (int)(intervalPace % 60);
+                (int) (
+                        intervalPace % 60
+                );
 
         String result =
                 String.format(
@@ -799,7 +813,9 @@ public class MainActivity extends Activity {
                         paceSec
                 );
 
-        intervalResults.add(result);
+        intervalResults.add(
+                result
+        );
 
         updateIntervalsText();
 
@@ -812,7 +828,9 @@ public class MainActivity extends Activity {
         );
 
         startButton.setEnabled(true);
+
         stopButton.setEnabled(false);
+
         finishButton.setEnabled(true);
 
         lastLocation = null;
@@ -884,6 +902,7 @@ public class MainActivity extends Activity {
         );
 
         workoutStarted = false;
+
         intervalRunning = false;
 
         timerHandler.removeCallbacks(
@@ -895,7 +914,9 @@ public class MainActivity extends Activity {
         );
 
         startButton.setEnabled(true);
+
         stopButton.setEnabled(false);
+
         finishButton.setEnabled(false);
 
         Intent intent =
@@ -958,30 +979,22 @@ public class MainActivity extends Activity {
     private void updateMap(
             Location location) {
 
-        GeoPoint point =
-                new GeoPoint(
+        if (map == null) {
+            return;
+        }
+
+        LatLng point =
+                new LatLng(
                         location.getLatitude(),
                         location.getLongitude()
                 );
 
-        map.getController().setCenter(point);
-
-        Marker marker =
-                new Marker(map);
-
-        marker.setPosition(point);
-
-        marker.setTitle(
-                "Вы здесь"
+        map.setCameraPosition(
+                new CameraPosition.Builder()
+                        .target(point)
+                        .zoom(16.0)
+                        .build()
         );
-
-        map.getOverlays().clear();
-
-        map.getOverlays().add(
-                marker
-        );
-
-        map.invalidate();
     }
 
     private void updateStats() {
@@ -1027,10 +1040,14 @@ public class MainActivity extends Activity {
                     totalTimeSeconds / km;
 
             int paceMin =
-                    (int)(pace / 60);
+                    (int) (
+                            pace / 60
+                    );
 
             int paceSec =
-                    (int)(pace % 60);
+                    (int) (
+                            pace % 60
+                    );
 
             paceText.setText(
                     String.format(
@@ -1076,15 +1093,25 @@ public class MainActivity extends Activity {
     }
 
     @Override
+    protected void onStart() {
+
+        super.onStart();
+
+        if (mapView != null) {
+            mapView.onStart();
+        }
+    }
+
+    @Override
     protected void onResume() {
 
         super.onResume();
 
-        loadWeight();
-
-        if (map != null) {
-            map.onResume();
+        if (mapView != null) {
+            mapView.onResume();
         }
+
+        loadWeight();
 
         if (intervalRunning) {
             updateStats();
@@ -1094,11 +1121,21 @@ public class MainActivity extends Activity {
     @Override
     protected void onPause() {
 
-        if (map != null) {
-            map.onPause();
+        if (mapView != null) {
+            mapView.onPause();
         }
 
         super.onPause();
+    }
+
+    @Override
+    protected void onStop() {
+
+        if (mapView != null) {
+            mapView.onStop();
+        }
+
+        super.onStop();
     }
 
     @Override
@@ -1110,6 +1147,20 @@ public class MainActivity extends Activity {
 
         stopLocationUpdates();
 
+        if (mapView != null) {
+            mapView.onDestroy();
+        }
+
         super.onDestroy();
+    }
+
+    @Override
+    public void onLowMemory() {
+
+        super.onLowMemory();
+
+        if (mapView != null) {
+            mapView.onLowMemory();
+        }
     }
 }

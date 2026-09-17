@@ -7,10 +7,12 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.location.Location;
 import android.os.Bundle;
 import android.os.Handler;
 import android.view.Gravity;
+import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -36,6 +38,30 @@ import java.util.Locale;
 
 public class MainActivity extends Activity {
 
+    private static final int BG =
+            Color.rgb(15, 17, 21);
+
+    private static final int CARD =
+            Color.rgb(27, 30, 36);
+
+    private static final int CARD_DARK =
+            Color.rgb(22, 24, 29);
+
+    private static final int ORANGE =
+            Color.rgb(252, 76, 2);
+
+    private static final int GREEN =
+            Color.rgb(54, 194, 117);
+
+    private static final int RED =
+            Color.rgb(229, 72, 77);
+
+    private static final int WHITE =
+            Color.WHITE;
+
+    private static final int SECONDARY =
+            Color.rgb(167, 173, 183);
+
     private FusedLocationProviderClient locationClient;
     private LocationCallback locationCallback;
 
@@ -52,9 +78,6 @@ public class MainActivity extends Activity {
     private Button startButton;
     private Button stopButton;
     private Button finishButton;
-    private Button settingsButton;
-    private Button historyButton;
-    private Button statisticsButton;
 
     private boolean workoutStarted = false;
     private boolean intervalRunning = false;
@@ -103,6 +126,15 @@ public class MainActivity extends Activity {
                     }
                 }
             };
+
+    private int dp(float value) {
+        return (int) (
+                value *
+                        getResources()
+                                .getDisplayMetrics()
+                                .density
+        );
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -166,7 +198,7 @@ public class MainActivity extends Activity {
 
         view.setText(text);
         view.setTextSize(size);
-        view.setTextColor(Color.WHITE);
+        view.setTextColor(WHITE);
 
         if (bold) {
             view.setTypeface(
@@ -175,14 +207,20 @@ public class MainActivity extends Activity {
             );
         }
 
-        view.setPadding(
-                8,
-                8,
-                8,
-                8
-        );
-
         return view;
+    }
+
+    private GradientDrawable roundedBackground(
+            int color,
+            float radius) {
+
+        GradientDrawable drawable =
+                new GradientDrawable();
+
+        drawable.setColor(color);
+        drawable.setCornerRadius(dp(radius));
+
+        return drawable;
     }
 
     private Button createButton(String text) {
@@ -191,17 +229,190 @@ public class MainActivity extends Activity {
                 new Button(this);
 
         button.setText(text);
-        button.setTextSize(15);
+        button.setTextSize(13);
         button.setAllCaps(false);
+        button.setTextColor(WHITE);
 
-        button.setBackgroundResource(
-                R.drawable.button_3d
+        button.setGravity(
+                Gravity.CENTER
         );
 
-        button.setTextColor(Color.WHITE);
-        button.setElevation(8f);
+        button.setPadding(
+                dp(4),
+                0,
+                dp(4),
+                0
+        );
+
+        button.setMinHeight(0);
+        button.setMinimumHeight(0);
+
+        button.setBackground(
+                roundedBackground(
+                        CARD,
+                        12
+                )
+        );
+
+        button.setElevation(
+                dp(2)
+        );
 
         return button;
+    }
+
+    private Button createNavButton(
+            String icon,
+            String text) {
+
+        Button button =
+                createButton(
+                        icon + "\n" + text
+                );
+
+        button.setTextSize(11);
+
+        return button;
+    }
+
+    private TextView createMetric(
+            String label,
+            String value) {
+
+        LinearLayout box =
+                new LinearLayout(this);
+
+        box.setOrientation(
+                LinearLayout.VERTICAL
+        );
+
+        box.setGravity(
+                Gravity.CENTER
+        );
+
+        box.setPadding(
+                dp(5),
+                dp(6),
+                dp(5),
+                dp(6)
+        );
+
+        box.setBackground(
+                roundedBackground(
+                        CARD,
+                        12
+                )
+        );
+
+        TextView labelText =
+                createText(
+                        label,
+                        10,
+                        false
+                );
+
+        labelText.setTextColor(
+                SECONDARY
+        );
+
+        labelText.setGravity(
+                Gravity.CENTER
+        );
+
+        TextView valueText =
+                createText(
+                        value,
+                        19,
+                        true
+                );
+
+        valueText.setGravity(
+                Gravity.CENTER
+        );
+
+        valueText.setPadding(
+                0,
+                dp(3),
+                0,
+                0
+        );
+
+        box.addView(labelText);
+        box.addView(valueText);
+
+        return createMetricWrapper(box);
+    }
+
+    private TextView createMetricWrapper(
+            LinearLayout box) {
+
+        TextView result =
+                new TextView(this);
+
+        result.setVisibility(View.GONE);
+
+        return result;
+    }
+
+    private LinearLayout createMetricBox(
+            String label,
+            String value) {
+
+        LinearLayout box =
+                new LinearLayout(this);
+
+        box.setOrientation(
+                LinearLayout.VERTICAL
+        );
+
+        box.setGravity(
+                Gravity.CENTER
+        );
+
+        box.setPadding(
+                dp(5),
+                dp(7),
+                dp(5),
+                dp(7)
+        );
+
+        box.setBackground(
+                roundedBackground(
+                        CARD,
+                        12
+                )
+        );
+
+        TextView labelText =
+                createText(
+                        label,
+                        10,
+                        false
+                );
+
+        labelText.setTextColor(
+                SECONDARY
+        );
+
+        labelText.setGravity(
+                Gravity.CENTER
+        );
+
+        TextView valueText =
+                createText(
+                        value,
+                        20,
+                        true
+                );
+
+        valueText.setGravity(
+                Gravity.CENTER
+        );
+
+        box.addView(labelText);
+        box.addView(valueText);
+
+        return box;
     }
 
     private void createInterface() {
@@ -213,55 +424,120 @@ public class MainActivity extends Activity {
                 LinearLayout.VERTICAL
         );
 
-        root.setBackgroundColor(
-                Color.rgb(30, 120, 200)
+        root.setBackgroundColor(BG);
+
+        // =========================
+        // HEADER
+        // =========================
+
+        LinearLayout header =
+                new LinearLayout(this);
+
+        header.setOrientation(
+                LinearLayout.HORIZONTAL
+        );
+
+        header.setGravity(
+                Gravity.CENTER_VERTICAL
+        );
+
+        header.setPadding(
+                dp(18),
+                dp(7),
+                dp(18),
+                dp(3)
         );
 
         TextView title =
                 createText(
-                        "🏃 RUN INTERVALS",
-                        25,
+                        "RUN INTERVALS",
+                        22,
                         true
                 );
 
-        title.setGravity(
-                Gravity.CENTER
+        title.setTextColor(WHITE);
+
+        header.addView(
+                title,
+                new LinearLayout.LayoutParams(
+                        0,
+                        dp(42),
+                        1
+                )
         );
 
-        title.setPadding(
-                10,
-                15,
-                10,
-                10
+        TextView runner =
+                createText(
+                        "●",
+                        20,
+                        true
+                );
+
+        runner.setTextColor(ORANGE);
+        runner.setGravity(Gravity.CENTER);
+
+        header.addView(
+                runner,
+                new LinearLayout.LayoutParams(
+                        dp(35),
+                        dp(42)
+                )
         );
 
-        root.addView(title);
+        root.addView(header);
+
+        // =========================
+        // STATUS
+        // =========================
 
         statusText =
                 createText(
-                        "Готов к тренировке",
-                        18,
+                        "ГОТОВ К ТРЕНИРОВКЕ",
+                        12,
                         true
                 );
+
+        statusText.setTextColor(
+                SECONDARY
+        );
 
         statusText.setGravity(
                 Gravity.CENTER
         );
 
-        root.addView(statusText);
+        root.addView(
+                statusText,
+                new LinearLayout.LayoutParams(
+                        -1,
+                        dp(30)
+                )
+        );
+
+        // =========================
+        // MAP
+        // =========================
 
         mapView =
                 new MapView(this);
 
         mapView.onCreate(null);
 
-        root.addView(
-                mapView,
+        LinearLayout.LayoutParams mapParams =
                 new LinearLayout.LayoutParams(
                         -1,
-                        0,
-                        0.38f
-                )
+                        dp(175)
+                );
+
+        mapParams.setMargins(
+                dp(10),
+                0,
+                dp(10),
+                dp(6)
+        );
+
+        root.addView(
+                mapView,
+                mapParams
         );
 
         mapView.getMapAsync(
@@ -293,13 +569,11 @@ public class MainActivity extends Activity {
         );
 
         TextView mapCopyright =
-                new TextView(this);
-
-        mapCopyright.setText(
-                "© OpenFreeMap © OpenStreetMap contributors"
-        );
-
-        mapCopyright.setTextSize(11);
+                createText(
+                        "© OpenFreeMap © OpenStreetMap",
+                        9,
+                        false
+                );
 
         mapCopyright.setTextColor(
                 Color.DKGRAY
@@ -318,177 +592,150 @@ public class MainActivity extends Activity {
                 Gravity.CENTER
         );
 
-        mapCopyright.setPadding(
-                6,
-                2,
-                6,
-                2
-        );
-
         root.addView(
                 mapCopyright,
                 new LinearLayout.LayoutParams(
                         -1,
-                        -2
+                        dp(18)
                 )
         );
 
-        ScrollView scroll =
-                new ScrollView(this);
+        // =========================
+        // METRICS
+        // =========================
 
-        LinearLayout info =
+        LinearLayout metrics =
                 new LinearLayout(this);
 
-        info.setOrientation(
+        metrics.setOrientation(
                 LinearLayout.VERTICAL
         );
 
-        info.setPadding(
-                12,
-                5,
-                12,
-                15
+        metrics.setPadding(
+                dp(10),
+                dp(5),
+                dp(10),
+                dp(5)
         );
 
-        TextView metricsTitle =
-                createText(
-                        "ПОКАЗАТЕЛИ",
-                        16,
-                        true
-                );
-
-        metricsTitle.setGravity(
-                Gravity.CENTER
-        );
-
-        info.addView(metricsTitle);
-
-        LinearLayout row1 =
+        LinearLayout metricsRow1 =
                 new LinearLayout(this);
 
-        row1.setOrientation(
+        metricsRow1.setOrientation(
+                LinearLayout.HORIZONTAL
+        );
+
+        LinearLayout metricsRow2 =
+                new LinearLayout(this);
+
+        metricsRow2.setOrientation(
                 LinearLayout.HORIZONTAL
         );
 
         timeText =
                 createText(
                         "⏱\n00:00",
-                        21,
+                        20,
                         true
                 );
 
         distanceText =
                 createText(
                         "📍\n0.00 км",
-                        21,
+                        20,
                         true
                 );
 
-        timeText.setGravity(
-                Gravity.CENTER
-        );
-
-        distanceText.setGravity(
-                Gravity.CENTER
-        );
-
-        row1.addView(
-                timeText,
-                new LinearLayout.LayoutParams(
-                        0,
-                        -2,
-                        1
-                )
-        );
-
-        row1.addView(
-                distanceText,
-                new LinearLayout.LayoutParams(
-                        0,
-                        -2,
-                        1
-                )
-        );
-
-        info.addView(row1);
-
-        LinearLayout row2 =
-                new LinearLayout(this);
-
-        row2.setOrientation(
-                LinearLayout.HORIZONTAL
-        );
-
         paceText =
                 createText(
-                        "🏃 Общий\n--:-- мин/км",
-                        21,
+                        "🏃\n--:--",
+                        20,
                         true
                 );
 
         caloriesText =
                 createText(
                         "🔥\n0 ккал",
-                        21,
+                        20,
                         true
                 );
 
-        paceText.setGravity(
-                Gravity.CENTER
+        timeText.setGravity(Gravity.CENTER);
+        distanceText.setGravity(Gravity.CENTER);
+        paceText.setGravity(Gravity.CENTER);
+        caloriesText.setGravity(Gravity.CENTER);
+
+        LinearLayout box1 =
+                createMetricBoxView(
+                        "ВРЕМЯ",
+                        timeText
+                );
+
+        LinearLayout box2 =
+                createMetricBoxView(
+                        "ДИСТАНЦИЯ",
+                        distanceText
+                );
+
+        LinearLayout box3 =
+                createMetricBoxView(
+                        "ОБЩИЙ ПЕЙС",
+                        paceText
+                );
+
+        LinearLayout box4 =
+                createMetricBoxView(
+                        "КАЛОРИИ",
+                        caloriesText
+                );
+
+        addMetricToRow(
+                metricsRow1,
+                box1
         );
 
-        caloriesText.setGravity(
-                Gravity.CENTER
+        addMetricToRow(
+                metricsRow1,
+                box2
         );
 
-        row2.addView(
-                paceText,
+        addMetricToRow(
+                metricsRow2,
+                box3
+        );
+
+        addMetricToRow(
+                metricsRow2,
+                box4
+        );
+
+        metrics.addView(
+                metricsRow1,
                 new LinearLayout.LayoutParams(
-                        0,
-                        -2,
-                        1
+                        -1,
+                        dp(55)
                 )
         );
 
-        row2.addView(
-                caloriesText,
+        metrics.addView(
+                metricsRow2,
                 new LinearLayout.LayoutParams(
-                        0,
-                        -2,
-                        1
+                        -1,
+                        dp(55)
                 )
         );
 
-        info.addView(row2);
-
-        TextView intervalTitle =
-                createText(
-                        "ИНТЕРВАЛЫ",
-                        16,
-                        true
-                );
-
-        intervalTitle.setGravity(
-                Gravity.CENTER
+        root.addView(
+                metrics,
+                new LinearLayout.LayoutParams(
+                        -1,
+                        dp(120)
+                )
         );
 
-        info.addView(intervalTitle);
-
-        intervalsText =
-                createText(
-                        "Пока нет интервалов",
-                        16,
-                        false
-                );
-
-        intervalsText.setPadding(
-                15,
-                5,
-                15,
-                5
-        );
-
-        info.addView(intervalsText);
+        // =========================
+        // WORKOUT BUTTONS
+        // =========================
 
         LinearLayout controls =
                 new LinearLayout(this);
@@ -497,98 +744,247 @@ public class MainActivity extends Activity {
                 LinearLayout.HORIZONTAL
         );
 
+        controls.setGravity(
+                Gravity.CENTER
+        );
+
+        controls.setPadding(
+                dp(10),
+                dp(3),
+                dp(10),
+                dp(3)
+        );
+
         startButton =
-                createButton("▶ СТАРТ");
+                createButton(
+                        "▶ СТАРТ"
+                );
 
         stopButton =
-                createButton("■ СТОП");
+                createButton(
+                        "■ СТОП"
+                );
 
         finishButton =
-                createButton("✓ ФИНИШ");
+                createButton(
+                        "✓ ФИНИШ"
+                );
+
+        startButton.setTextSize(15);
+        stopButton.setTextSize(13);
+        finishButton.setTextSize(13);
+
+        startButton.setTextColor(WHITE);
+        stopButton.setTextColor(WHITE);
+        finishButton.setTextColor(WHITE);
+
+        startButton.setBackground(
+                roundedBackground(
+                        ORANGE,
+                        14
+                )
+        );
+
+        stopButton.setBackground(
+                roundedBackground(
+                        RED,
+                        14
+                )
+        );
+
+        finishButton.setBackground(
+                roundedBackground(
+                        GREEN,
+                        14
+                )
+        );
 
         stopButton.setEnabled(false);
         finishButton.setEnabled(false);
 
-        controls.addView(
+        addControlButton(
+                controls,
                 startButton,
-                new LinearLayout.LayoutParams(
-                        0,
-                        -2,
-                        1
-                )
+                1.3f
         );
 
-        controls.addView(
+        addControlButton(
+                controls,
                 stopButton,
-                new LinearLayout.LayoutParams(
-                        0,
-                        -2,
-                        1
-                )
+                0.85f
         );
 
-        controls.addView(
+        addControlButton(
+                controls,
                 finishButton,
-                new LinearLayout.LayoutParams(
-                        0,
-                        -2,
-                        1
-                )
+                0.85f
         );
-
-        info.addView(controls);
-
-        historyButton =
-                createButton(
-                        "📋 История пробежек"
-                );
-
-        statisticsButton =
-                createButton(
-                        "📊 Статистика"
-                );
-
-        settingsButton =
-                createButton(
-                        "⚙ Настройки"
-                );
-
-        LinearLayout.LayoutParams params =
-                new LinearLayout.LayoutParams(
-                        -1,
-                        -2
-                );
-
-        params.setMargins(
-                0,
-                3,
-                0,
-                3
-        );
-
-        info.addView(
-                historyButton,
-                params
-        );
-
-        info.addView(
-                statisticsButton,
-                params
-        );
-
-        info.addView(
-                settingsButton,
-                params
-        );
-
-        scroll.addView(info);
 
         root.addView(
-                scroll,
+                controls,
+                new LinearLayout.LayoutParams(
+                        -1,
+                        dp(55)
+                )
+        );
+
+        // =========================
+        // INTERVALS
+        // =========================
+
+        LinearLayout intervalHeader =
+                new LinearLayout(this);
+
+        intervalHeader.setGravity(
+                Gravity.CENTER_VERTICAL
+        );
+
+        intervalHeader.setPadding(
+                dp(14),
+                dp(3),
+                dp(14),
+                0
+        );
+
+        TextView intervalTitle =
+                createText(
+                        "ИНТЕРВАЛЫ",
+                        12,
+                        true
+                );
+
+        intervalTitle.setTextColor(
+                SECONDARY
+        );
+
+        intervalHeader.addView(
+                intervalTitle,
+                new LinearLayout.LayoutParams(
+                        0,
+                        dp(28),
+                        1
+                )
+        );
+
+        TextView intervalHint =
+                createText(
+                        "каждый отрезок",
+                        10,
+                        false
+                );
+
+        intervalHint.setTextColor(
+                SECONDARY
+        );
+
+        intervalHeader.addView(
+                intervalHint
+        );
+
+        root.addView(
+                intervalHeader,
+                new LinearLayout.LayoutParams(
+                        -1,
+                        dp(28)
+                )
+        );
+
+        ScrollView intervalScroll =
+                new ScrollView(this);
+
+        intervalScroll.setFillViewport(true);
+
+        intervalsText =
+                createText(
+                        "Пока нет интервалов",
+                        13,
+                        false
+                );
+
+        intervalsText.setTextColor(
+                SECONDARY
+        );
+
+        intervalsText.setPadding(
+                dp(14),
+                dp(6),
+                dp(14),
+                dp(8)
+        );
+
+        intervalScroll.addView(
+                intervalsText
+        );
+
+        root.addView(
+                intervalScroll,
                 new LinearLayout.LayoutParams(
                         -1,
                         0,
-                        0.62f
+                        1
+                )
+        );
+
+        // =========================
+        // BOTTOM NAVIGATION
+        // =========================
+
+        LinearLayout navigation =
+                new LinearLayout(this);
+
+        navigation.setOrientation(
+                LinearLayout.HORIZONTAL
+        );
+
+        navigation.setGravity(
+                Gravity.CENTER
+        );
+
+        navigation.setPadding(
+                dp(8),
+                dp(4),
+                dp(8),
+                dp(6)
+        );
+
+        Button historyButton =
+                createNavButton(
+                        "▣",
+                        "История"
+                );
+
+        Button statisticsButton =
+                createNavButton(
+                        "▥",
+                        "Статистика"
+                );
+
+        Button settingsButton =
+                createNavButton(
+                        "⚙",
+                        "Настройки"
+                );
+
+        addNavButton(
+                navigation,
+                historyButton
+        );
+
+        addNavButton(
+                navigation,
+                statisticsButton
+        );
+
+        addNavButton(
+                navigation,
+                settingsButton
+        );
+
+        root.addView(
+                navigation,
+                new LinearLayout.LayoutParams(
+                        -1,
+                        dp(58)
                 )
         );
 
@@ -616,6 +1012,135 @@ public class MainActivity extends Activity {
 
         settingsButton.setOnClickListener(
                 v -> openSettings()
+        );
+    }
+
+    private LinearLayout createMetricBoxView(
+            String label,
+            TextView valueView) {
+
+        LinearLayout box =
+                new LinearLayout(this);
+
+        box.setOrientation(
+                LinearLayout.VERTICAL
+        );
+
+        box.setGravity(
+                Gravity.CENTER
+        );
+
+        box.setBackground(
+                roundedBackground(
+                        CARD,
+                        12
+                )
+        );
+
+        TextView labelView =
+                createText(
+                        label,
+                        9,
+                        false
+                );
+
+        labelView.setTextColor(
+                SECONDARY
+        );
+
+        labelView.setGravity(
+                Gravity.CENTER
+        );
+
+        box.addView(
+                labelView,
+                new LinearLayout.LayoutParams(
+                        -1,
+                        dp(18)
+                )
+        );
+
+        box.addView(
+                valueView,
+                new LinearLayout.LayoutParams(
+                        -1,
+                        dp(34)
+                )
+        );
+
+        return box;
+    }
+
+    private void addMetricToRow(
+            LinearLayout row,
+            View view) {
+
+        LinearLayout.LayoutParams params =
+                new LinearLayout.LayoutParams(
+                        0,
+                        -1,
+                        1
+                );
+
+        params.setMargins(
+                dp(3),
+                dp(2),
+                dp(3),
+                dp(2)
+        );
+
+        row.addView(
+                view,
+                params
+        );
+    }
+
+    private void addControlButton(
+            LinearLayout row,
+            Button button,
+            float weight) {
+
+        LinearLayout.LayoutParams params =
+                new LinearLayout.LayoutParams(
+                        0,
+                        dp(48),
+                        weight
+                );
+
+        params.setMargins(
+                dp(3),
+                0,
+                dp(3),
+                0
+        );
+
+        row.addView(
+                button,
+                params
+        );
+    }
+
+    private void addNavButton(
+            LinearLayout row,
+            Button button) {
+
+        LinearLayout.LayoutParams params =
+                new LinearLayout.LayoutParams(
+                        0,
+                        dp(50),
+                        1
+                );
+
+        params.setMargins(
+                dp(3),
+                0,
+                dp(3),
+                0
+        );
+
+        row.addView(
+                button,
+                params
         );
     }
 
@@ -695,9 +1220,13 @@ public class MainActivity extends Activity {
                 totalDistance;
 
         statusText.setText(
-                "🏃 Интервал " +
+                "ИНТЕРВАЛ " +
                         intervalNumber +
-                        " выполняется"
+                        " • ВЫПОЛНЯЕТСЯ"
+        );
+
+        statusText.setTextColor(
+                GREEN
         );
 
         startButton.setEnabled(false);
@@ -758,7 +1287,11 @@ public class MainActivity extends Activity {
         stopLocationUpdates();
 
         statusText.setText(
-                "⏸ Интервал завершён"
+                "ПАУЗА • ИНТЕРВАЛ ЗАВЕРШЁН"
+        );
+
+        statusText.setTextColor(
+                SECONDARY
         );
 
         startButton.setEnabled(true);
@@ -787,7 +1320,7 @@ public class MainActivity extends Activity {
             )
             .append(intervalNumber)
             .append(
-                    ": выполняется..."
+                    " • выполняется..."
             );
         }
 
@@ -827,7 +1360,6 @@ public class MainActivity extends Activity {
         RunHistory history =
                 new RunHistory(this);
 
-        // Сохраняем также детализацию интервалов
         List<String> savedIntervals =
                 new ArrayList<>(
                         intervalResults
@@ -848,7 +1380,11 @@ public class MainActivity extends Activity {
         );
 
         statusText.setText(
-                "✓ Тренировка завершена"
+                "ТРЕНИРОВКА ЗАВЕРШЕНА"
+        );
+
+        statusText.setTextColor(
+                GREEN
         );
 
         startButton.setEnabled(true);
@@ -938,7 +1474,7 @@ public class MainActivity extends Activity {
         timeText.setText(
                 String.format(
                         Locale.getDefault(),
-                        "⏱\n%02d:%02d",
+                        "%02d:%02d",
                         totalTimeSeconds / 60,
                         totalTimeSeconds % 60
                 )
@@ -950,7 +1486,7 @@ public class MainActivity extends Activity {
         distanceText.setText(
                 String.format(
                         Locale.getDefault(),
-                        "📍\n%.2f км",
+                        "%.2f км",
                         km
                 )
         );
@@ -964,7 +1500,7 @@ public class MainActivity extends Activity {
         caloriesText.setText(
                 String.format(
                         Locale.getDefault(),
-                        "🔥\n%.0f ккал",
+                        "%.0f ккал",
                         calories
                 )
         );
@@ -984,7 +1520,7 @@ public class MainActivity extends Activity {
             paceText.setText(
                     String.format(
                             Locale.getDefault(),
-                            "🏃 Общий\n%02d:%02d мин/км",
+                            "%02d:%02d",
                             paceMin,
                             paceSec
                     )

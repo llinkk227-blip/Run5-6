@@ -104,7 +104,6 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Настройка osmdroid
         File basePath =
                 new File(
                         getFilesDir(),
@@ -145,7 +144,6 @@ public class MainActivity extends Activity {
                 )
         );
 
-        // После load снова фиксируем приватный кэш
         Configuration.getInstance().setOsmdroidBasePath(
                 basePath
         );
@@ -209,7 +207,6 @@ public class MainActivity extends Activity {
 
         view.setText(text);
         view.setTextSize(size);
-
         view.setTextColor(Color.WHITE);
 
         if (bold) {
@@ -338,8 +335,13 @@ public class MainActivity extends Activity {
                 LinearLayout.VERTICAL
         );
 
+        /*
+         * Увеличиваем нижний внутренний отступ.
+         * Благодаря этому последние кнопки
+         * поднимаются выше системной навигации.
+         */
         info.setPadding(
-                12, 5, 12, 5
+                12, 5, 12, 70
         );
 
         TextView metricsTitle =
@@ -548,15 +550,44 @@ public class MainActivity extends Activity {
                         "⚙ Настройки"
                 );
 
-        info.addView(historyButton);
-        info.addView(statisticsButton);
-        info.addView(settingsButton);
+        /*
+         * Нижние кнопки находятся внутри ScrollView.
+         * Добавляем небольшой внешний отступ между ними.
+         */
+        LinearLayout.LayoutParams bottomButtonParams =
+                new LinearLayout.LayoutParams(
+                        -1,
+                        -2
+                );
 
+        bottomButtonParams.setMargins(
+                0, 4, 0, 4
+        );
+
+        info.addView(
+                historyButton,
+                bottomButtonParams
+        );
+
+        info.addView(
+                statisticsButton,
+                bottomButtonParams
+        );
+
+        info.addView(
+                settingsButton,
+                bottomButtonParams
+        );
+
+        /*
+         * Дополнительное пространство после
+         * кнопки «Настройки».
+         */
         TextView bottomSpace =
                 new TextView(this);
 
         bottomSpace.setHeight(
-                35
+                60
         );
 
         info.addView(bottomSpace);
@@ -768,9 +799,18 @@ public class MainActivity extends Activity {
             );
         }
 
-        intervalsText.setText(
-                builder.toString()
-        );
+        if (builder.length() == 0) {
+
+            intervalsText.setText(
+                    "Пока нет интервалов"
+            );
+
+        } else {
+
+            intervalsText.setText(
+                    builder.toString()
+            );
+        }
     }
 
     private void finishWorkout() {

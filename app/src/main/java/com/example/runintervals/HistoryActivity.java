@@ -2,6 +2,7 @@ package com.example.runintervals;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.graphics.Color;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.view.Gravity;
@@ -14,6 +15,12 @@ public class HistoryActivity extends Activity {
 
     private LinearLayout list;
     private RunHistory runHistory;
+
+    private final int BLUE =
+            Color.rgb(30, 120, 200);
+
+    private final int LIGHT_BLUE =
+            Color.rgb(70, 150, 220);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -28,6 +35,8 @@ public class HistoryActivity extends Activity {
                 LinearLayout.VERTICAL
         );
 
+        root.setBackgroundColor(BLUE);
+
         root.setPadding(
                 20, 25, 20, 20
         );
@@ -37,10 +46,13 @@ public class HistoryActivity extends Activity {
 
         title.setText("ИСТОРИЯ ПРОБЕЖЕК");
         title.setTextSize(26);
+        title.setTextColor(Color.WHITE);
+
         title.setTypeface(
                 Typeface.DEFAULT,
                 Typeface.BOLD
         );
+
         title.setGravity(Gravity.CENTER);
 
         root.addView(title);
@@ -67,8 +79,10 @@ public class HistoryActivity extends Activity {
         );
 
         list.setPadding(
-                0, 10, 0, 20
+                0, 10, 0, 30
         );
+
+        list.setBackgroundColor(BLUE);
 
         scroll.addView(list);
 
@@ -107,6 +121,8 @@ public class HistoryActivity extends Activity {
             );
 
             empty.setTextSize(19);
+            empty.setTextColor(Color.WHITE);
+
             empty.setGravity(
                     Gravity.CENTER
             );
@@ -146,11 +162,17 @@ public class HistoryActivity extends Activity {
                 20, 18, 20, 18
         );
 
+        card.setBackgroundColor(
+                LIGHT_BLUE
+        );
+
         TextView text =
                 new TextView(this);
 
         text.setText(record);
         text.setTextSize(18);
+        text.setTextColor(Color.WHITE);
+
         text.setLineSpacing(
                 0,
                 1.15f
@@ -158,12 +180,19 @@ public class HistoryActivity extends Activity {
 
         card.addView(text);
 
-        list.addView(
-                card,
+        LinearLayout.LayoutParams params =
                 new LinearLayout.LayoutParams(
                         -1,
                         LinearLayout.LayoutParams.WRAP_CONTENT
-                )
+                );
+
+        params.setMargins(
+                0, 0, 0, 10
+        );
+
+        list.addView(
+                card,
+                params
         );
     }
 
@@ -188,4 +217,4 @@ public class HistoryActivity extends Activity {
                 )
                 .show();
     }
-                }
+}

@@ -3,12 +3,17 @@ package com.example.runintervals;
 import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
+import android.graphics.Typeface;
 import android.location.Location;
 import android.os.Bundle;
 import android.os.Handler;
+import android.view.Gravity;
 import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -78,7 +83,6 @@ public class MainActivity extends Activity {
                 LocationServices.getFusedLocationProviderClient(this);
 
         loadWeight();
-
         createInterface();
         createLocationCallback();
 
@@ -98,7 +102,7 @@ public class MainActivity extends Activity {
 
     private void loadWeight() {
 
-        android.content.SharedPreferences prefs =
+        SharedPreferences prefs =
                 getSharedPreferences("run_data", MODE_PRIVATE);
 
         weight = Double.longBitsToDouble(
@@ -109,124 +113,234 @@ public class MainActivity extends Activity {
         );
     }
 
+    private TextView createText(
+            String text,
+            float size,
+            boolean bold) {
+
+        TextView view = new TextView(this);
+
+        view.setText(text);
+        view.setTextSize(size);
+        view.setTextColor(Color.rgb(35, 35, 35));
+
+        if (bold) {
+            view.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        }
+
+        view.setPadding(8, 8, 8, 8);
+
+        return view;
+    }
+
+    private Button createButton(String text) {
+
+        Button button = new Button(this);
+
+        button.setText(text);
+        button.setTextSize(15);
+        button.setAllCaps(false);
+
+        return button;
+    }
+
     private void createInterface() {
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
+        root.setBackgroundColor(Color.rgb(248, 249, 250));
+
+        // ---------- ЗАГОЛОВОК ----------
+
+        TextView title =
+                createText("RUN INTERVALS", 24, true);
+
+        title.setGravity(Gravity.CENTER);
+        title.setPadding(10, 18, 10, 12);
+
+        root.addView(
+                title,
+                new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+        );
+
+        // ---------- КАРТА ----------
 
         map = new MapView(this);
+        map.setMultiTouchControls(true);
 
         root.addView(
                 map,
                 new LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.MATCH_PARENT,
                         0,
-                        1
+                        0.48f
                 )
         );
-
-        LinearLayout info = new LinearLayout(this);
-        info.setOrientation(LinearLayout.VERTICAL);
-        info.setPadding(20, 15, 20, 15);
-
-        statusText = new TextView(this);
-        statusText.setText("Готов к пробежке");
-        statusText.setTextSize(18);
-
-        timeText = new TextView(this);
-        timeText.setText("Время: 00:00");
-        timeText.setTextSize(20);
-
-        distanceText = new TextView(this);
-        distanceText.setText("Дистанция: 0.00 км");
-        distanceText.setTextSize(20);
-
-        paceText = new TextView(this);
-        paceText.setText("Темп: --:-- мин/км");
-        paceText.setTextSize(20);
-
-        caloriesText = new TextView(this);
-        caloriesText.setText("Калории: 0 ккал");
-        caloriesText.setTextSize(20);
-
-        info.addView(statusText);
-        info.addView(timeText);
-        info.addView(distanceText);
-        info.addView(paceText);
-        info.addView(caloriesText);
-
-        LinearLayout buttons = new LinearLayout(this);
-
-        startButton = new Button(this);
-        startButton.setText("СТАРТ");
-
-        pauseButton = new Button(this);
-        pauseButton.setText("ПАУЗА");
-        pauseButton.setEnabled(false);
-
-        finishButton = new Button(this);
-        finishButton.setText("ФИНИШ");
-        finishButton.setEnabled(false);
-
-        buttons.addView(
-                startButton,
-                new LinearLayout.LayoutParams(0, -2, 1)
-        );
-
-        buttons.addView(
-                pauseButton,
-                new LinearLayout.LayoutParams(0, -2, 1)
-        );
-
-        buttons.addView(
-                finishButton,
-                new LinearLayout.LayoutParams(0, -2, 1)
-        );
-
-        info.addView(buttons);
-
-        settingsButton = new Button(this);
-        settingsButton.setText("НАСТРОЙКИ");
-
-        info.addView(settingsButton);
-
-        historyButton = new Button(this);
-        historyButton.setText("ИСТОРИЯ");
-
-        info.addView(historyButton);
-
-        root.addView(info);
-
-        setContentView(root);
-
-        startButton.setOnClickListener(v -> startRun());
-
-        pauseButton.setOnClickListener(v -> togglePause());
-
-        finishButton.setOnClickListener(v -> finishRun());
-
-        settingsButton.setOnClickListener(v -> openSettings());
-
-        historyButton.setOnClickListener(v -> openHistory());
-
-        map.setMultiTouchControls(true);
 
         GeoPoint startPoint =
                 new GeoPoint(44.7866, 20.4489);
 
         map.getController().setZoom(14.0);
         map.getController().setCenter(startPoint);
-    }
 
-    private void openSettings() {
+        // ---------- НИЖНЯЯ ЧАСТЬ ----------
 
-        Intent intent =
-                new Intent(
-                        MainActivity.this,
-                        SettingsActivity.class
-                );
+        ScrollView scrollView = new ScrollView(this);
 
-        startActivity(intent);
+        LinearLayout info = new LinearLayout(this);
+        info.setOrientation(LinearLayout.VERTICAL);
+        info.setPadding(16, 10, 16, 16);
+
+        statusText =
+                createText("Готов к пробежке", 18, true);
+
+        statusText.setGravity(Gravity.CENTER);
+
+        info.addView(statusText);
+
+        // Время
+        timeText =
+                createText("Время\n00:00", 22, true);
+
+        timeText.setGravity(Gravity.CENTER);
+
+        info.addView(timeText);
+
+        // Дистанция
+        distanceText =
+                createText("Дистанция\n0.00 км", 22, true);
+
+        distanceText.setGravity(Gravity.CENTER);
+
+        info.addView(distanceText);
+
+        // Темп
+        paceText =
+                createText("Темп\n--:-- мин/км", 22, true);
+
+        paceText.setGravity(Gravity.CENTER);
+
+        info.addView(paceText);
+
+        // Калории
+        caloriesText =
+                createText("Калории\n0 ккал", 22, true);
+
+        caloriesText.setGravity(Gravity.CENTER);
+
+        info.addView(caloriesText);
+
+        // ---------- ОСНОВНЫЕ КНОПКИ ----------
+
+        LinearLayout buttons =
+                new LinearLayout(this);
+
+        buttons.setOrientation(LinearLayout.HORIZONTAL);
+
+        startButton = createButton("▶ СТАРТ");
+
+        pauseButton = createButton("Ⅱ ПАУЗА");
+        pauseButton.setEnabled(false);
+
+        finishButton = createButton("■ ФИНИШ");
+        finishButton.setEnabled(false);
+
+        buttons.addView(
+                startButton,
+                new LinearLayout.LayoutParams(
+                        0,
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        1
+                )
+        );
+
+        buttons.addView(
+                pauseButton,
+                new LinearLayout.LayoutParams(
+                        0,
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        1
+                )
+        );
+
+        buttons.addView(
+                finishButton,
+                new LinearLayout.LayoutParams(
+                        0,
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        1
+                )
+        );
+
+        info.addView(buttons);
+
+        // ---------- ИСТОРИЯ ----------
+
+        historyButton =
+                createButton("📋  ИСТОРИЯ");
+
+        historyButton.setTextSize(17);
+
+        info.addView(
+                historyButton,
+                new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+        );
+
+        // ---------- НАСТРОЙКИ ----------
+
+        settingsButton =
+                createButton("⚙  НАСТРОЙКИ");
+
+        settingsButton.setTextSize(17);
+
+        info.addView(
+                settingsButton,
+                new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+        );
+
+        scrollView.addView(info);
+
+        root.addView(
+                scrollView,
+                new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        0,
+                        0.52f
+                )
+        );
+
+        setContentView(root);
+
+        // ---------- ОБРАБОТЧИКИ ----------
+
+        startButton.setOnClickListener(
+                v -> startRun()
+        );
+
+        pauseButton.setOnClickListener(
+                v -> togglePause()
+        );
+
+        finishButton.setOnClickListener(
+                v -> finishRun()
+        );
+
+        historyButton.setOnClickListener(
+                v -> openHistory()
+        );
+
+        settingsButton.setOnClickListener(
+                v -> openSettings()
+        );
     }
 
     private void openHistory() {
@@ -240,18 +354,31 @@ public class MainActivity extends Activity {
         startActivity(intent);
     }
 
+    private void openSettings() {
+
+        Intent intent =
+                new Intent(
+                        MainActivity.this,
+                        SettingsActivity.class
+                );
+
+        startActivity(intent);
+    }
+
     private void createLocationCallback() {
 
         locationCallback = new LocationCallback() {
 
             @Override
-            public void onLocationResult(LocationResult result) {
+            public void onLocationResult(
+                    LocationResult result) {
 
                 if (result == null) {
                     return;
                 }
 
-                for (Location location : result.getLocations()) {
+                for (Location location :
+                        result.getLocations()) {
 
                     if (!running || paused) {
                         continue;
@@ -285,9 +412,10 @@ public class MainActivity extends Activity {
         lastLocation = null;
         pausedDuration = 0;
 
-        startTime = System.currentTimeMillis();
+        startTime =
+                System.currentTimeMillis();
 
-        statusText.setText("Пробежка идёт");
+        statusText.setText("🏃 Пробежка идёт");
 
         startButton.setEnabled(false);
         pauseButton.setEnabled(true);
@@ -307,20 +435,24 @@ public class MainActivity extends Activity {
         if (!paused) {
 
             paused = true;
-            pauseStart = System.currentTimeMillis();
 
-            statusText.setText("Пауза");
-            pauseButton.setText("ПРОДОЛЖИТЬ");
+            pauseStart =
+                    System.currentTimeMillis();
+
+            statusText.setText("⏸ Пауза");
+            pauseButton.setText("▶ ПРОДОЛЖИТЬ");
 
         } else {
 
             paused = false;
 
             pausedDuration +=
-                    System.currentTimeMillis() - pauseStart;
+                    System.currentTimeMillis()
+                            - pauseStart;
 
-            statusText.setText("Пробежка идёт");
-            pauseButton.setText("ПАУЗА");
+            statusText.setText("🏃 Пробежка идёт");
+
+            pauseButton.setText("Ⅱ ПАУЗА");
 
             handler.post(timerRunnable);
         }
@@ -339,7 +471,8 @@ public class MainActivity extends Activity {
 
         long seconds = elapsed / 1000;
 
-        double km = distance / 1000.0;
+        double km =
+                distance / 1000.0;
 
         double calories =
                 CalorieCalculator.calculate(
@@ -361,13 +494,13 @@ public class MainActivity extends Activity {
 
         stopLocationUpdates();
 
-        statusText.setText("Пробежка завершена");
+        statusText.setText("✓ Пробежка завершена");
 
         startButton.setEnabled(true);
         pauseButton.setEnabled(false);
         finishButton.setEnabled(false);
 
-        pauseButton.setText("ПАУЗА");
+        pauseButton.setText("Ⅱ ПАУЗА");
 
         updateStats();
     }
@@ -413,7 +546,8 @@ public class MainActivity extends Activity {
 
         map.getController().setCenter(point);
 
-        Marker marker = new Marker(map);
+        Marker marker =
+                new Marker(map);
 
         marker.setPosition(point);
         marker.setTitle("Вы здесь");
@@ -439,23 +573,25 @@ public class MainActivity extends Activity {
             elapsed = 0;
         }
 
-        long seconds = elapsed / 1000;
+        long seconds =
+                elapsed / 1000;
 
         timeText.setText(
                 String.format(
                         Locale.getDefault(),
-                        "Время: %02d:%02d",
+                        "Время\n%02d:%02d",
                         seconds / 60,
                         seconds % 60
                 )
         );
 
-        double km = distance / 1000.0;
+        double km =
+                distance / 1000.0;
 
         distanceText.setText(
                 String.format(
                         Locale.getDefault(),
-                        "Дистанция: %.2f км",
+                        "Дистанция\n%.2f км",
                         km
                 )
         );
@@ -469,7 +605,7 @@ public class MainActivity extends Activity {
         caloriesText.setText(
                 String.format(
                         Locale.getDefault(),
-                        "Калории: %.0f ккал",
+                        "Калории\n%.0f ккал",
                         calories
                 )
         );
@@ -488,7 +624,7 @@ public class MainActivity extends Activity {
             paceText.setText(
                     String.format(
                             Locale.getDefault(),
-                            "Темп: %02d:%02d мин/км",
+                            "Темп\n%02d:%02d мин/км",
                             paceMin,
                             paceSec
                     )
@@ -498,6 +634,7 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onResume() {
+
         super.onResume();
 
         loadWeight();
@@ -513,6 +650,9 @@ public class MainActivity extends Activity {
         super.onDestroy();
 
         stopLocationUpdates();
-        handler.removeCallbacks(timerRunnable);
+
+        handler.removeCallbacks(
+                timerRunnable
+        );
     }
             }

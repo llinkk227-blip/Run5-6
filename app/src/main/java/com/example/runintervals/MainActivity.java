@@ -14,7 +14,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.view.Gravity;
 import android.view.View;
-import android.view.WindowInsets;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -90,6 +89,7 @@ public class MainActivity extends Activity {
 
     private TextView timeValue;
     private TextView distanceValue;
+    private TextView intervalDistanceValue;
     private TextView currentPaceValue;
     private TextView totalPaceValue;
     private TextView intervalPaceValue;
@@ -285,16 +285,16 @@ public class MainActivity extends Activity {
         );
 
         card.setPadding(
+                dp(4),
                 dp(6),
-                dp(8),
-                dp(6),
-                dp(8)
+                dp(4),
+                dp(6)
         );
 
         TextView label =
                 text(
                         title,
-                        11,
+                        10,
                         true
                 );
 
@@ -305,6 +305,8 @@ public class MainActivity extends Activity {
         label.setGravity(
                 Gravity.CENTER
         );
+
+        label.setMaxLines(2);
 
         card.addView(label);
 
@@ -490,6 +492,13 @@ public class MainActivity extends Activity {
         distanceValue =
                 metricValue();
 
+        intervalDistanceValue =
+                metricValue();
+
+        intervalDistanceValue.setText(
+                "0,00"
+        );
+
         currentPaceValue =
                 metricValue();
 
@@ -498,6 +507,10 @@ public class MainActivity extends Activity {
 
         intervalPaceValue =
                 metricValue();
+
+        // ==========================================
+        // ROW 1
+        // ==========================================
 
         LinearLayout row1 =
                 new LinearLayout(this);
@@ -511,7 +524,15 @@ public class MainActivity extends Activity {
                         "ДИСТАНЦИЯ, КМ",
                         distanceValue
                 ),
-                metricParams(4)
+                metricParams3(4)
+        );
+
+        row1.addView(
+                metricCard(
+                        "ДИСТ. ИНТЕРВАЛА, КМ",
+                        intervalDistanceValue
+                ),
+                metricParams3(4)
         );
 
         row1.addView(
@@ -519,7 +540,7 @@ public class MainActivity extends Activity {
                         "ТЕКУЩИЙ ПЕЙС",
                         currentPaceValue
                 ),
-                metricParams(0)
+                metricParams3(0)
         );
 
         metrics.addView(
@@ -529,6 +550,10 @@ public class MainActivity extends Activity {
                         dp(70)
                 )
         );
+
+        // ==========================================
+        // ROW 2
+        // ==========================================
 
         LinearLayout row2 =
                 new LinearLayout(this);
@@ -870,6 +895,26 @@ public class MainActivity extends Activity {
     }
 
     private LinearLayout.LayoutParams metricParams(
+            int rightMargin) {
+
+        LinearLayout.LayoutParams params =
+                new LinearLayout.LayoutParams(
+                        0,
+                        -1,
+                        1
+                );
+
+        params.setMargins(
+                0,
+                0,
+                dp(rightMargin),
+                0
+        );
+
+        return params;
+    }
+
+    private LinearLayout.LayoutParams metricParams3(
             int rightMargin) {
 
         LinearLayout.LayoutParams params =
@@ -1294,6 +1339,10 @@ public class MainActivity extends Activity {
         intervalStartTime = 0;
         intervalRunning = false;
 
+        intervalDistanceValue.setText(
+                "0,00"
+        );
+
         lastLocation = null;
 
         recentLocations.clear();
@@ -1397,9 +1446,6 @@ public class MainActivity extends Activity {
             );
         }
 
-        // Если пользователь нажал ФИНИШ,
-        // пока интервал ещё выполняется,
-        // автоматически завершаем его.
         if (intervalRunning) {
 
             finishCurrentInterval();
@@ -1471,6 +1517,10 @@ public class MainActivity extends Activity {
 
         intervalDistanceMeters = 0;
 
+        intervalDistanceValue.setText(
+                "0,00"
+        );
+
         intervalStartTime =
                 System.currentTimeMillis();
 
@@ -1506,13 +1556,15 @@ public class MainActivity extends Activity {
         double distanceKm =
                 intervalDistanceMeters / 1000.0;
 
-        // Если GPS не успел дать дистанцию,
-        // интервал не записываем как 0.00 км.
         if (distanceKm <= 0) {
 
             intervalRunning = false;
             intervalDistanceMeters = 0;
             intervalStartTime = 0;
+
+            intervalDistanceValue.setText(
+                    "0,00"
+            );
 
             intervalPaceValue.setText("—");
 
@@ -1546,6 +1598,10 @@ public class MainActivity extends Activity {
         intervalRunning = false;
         intervalDistanceMeters = 0;
         intervalStartTime = 0;
+
+        intervalDistanceValue.setText(
+                "0,00"
+        );
 
         intervalPaceValue.setText("—");
 
@@ -1642,6 +1698,21 @@ public class MainActivity extends Activity {
                 )
         );
 
+        // ==========================================
+        // ТЕКУЩЕЕ РАССТОЯНИЕ ИНТЕРВАЛА
+        // ==========================================
+
+        double intervalKm =
+                intervalDistanceMeters / 1000.0;
+
+        intervalDistanceValue.setText(
+                String.format(
+                        Locale.getDefault(),
+                        "%.2f",
+                        intervalKm
+                )
+        );
+
         if (distanceKm > 0 &&
                 elapsed > 0) {
 
@@ -1683,10 +1754,6 @@ public class MainActivity extends Activity {
                             ) / 1000
                     );
 
-            double intervalKm =
-                    intervalDistanceMeters /
-                            1000.0;
-
             if (intervalKm > 0) {
 
                 double intervalPace =
@@ -1701,6 +1768,10 @@ public class MainActivity extends Activity {
 
                 intervalPaceValue.setText("—");
             }
+
+        } else {
+
+            intervalPaceValue.setText("—");
         }
     }
 
@@ -1917,4 +1988,4 @@ public class MainActivity extends Activity {
                     timeMillis;
         }
     }
-            }
+                    }

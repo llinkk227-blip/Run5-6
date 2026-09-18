@@ -1457,4 +1457,501 @@ public class MainActivity extends Activity {
             finishCurrentInterval();
         }
 
-        statusValue.setText
+        statusValue.setText("ФИНИШ");
+        statusValue.setTextColor(ORANGE);
+
+        startButton.setEnabled(true);
+        stopButton.setEnabled(false);
+        finishButton.setEnabled(false);
+        intervalButton.setEnabled(false);
+
+        double distanceKm =
+                totalDistanceMeters / 1000.0;
+
+        double weight =
+                settings.getFloat(
+                        "weight",
+                        0f
+                );
+
+        double calories =
+                CalorieCalculator.calculate(
+                        distanceKm,
+                        weight
+                );
+
+        RunHistory history =
+                new RunHistory(this);
+
+        history.addRun(
+                distanceKm,
+                workoutTimeSeconds,
+                calories,
+                savedIntervals
+        );
+
+        openResult(
+                distanceKm,
+                workoutTimeSeconds,
+                calories
+        );
+    }
+
+    // ==========================================
+    // INTERVALS
+    // ==========================================
+
+    private void toggleInterval() {
+
+        if (!workoutRunning) {
+            return;
+        }
+
+        if (!intervalRunning) {
+
+            startInterval();
+
+        } else {
+
+            finishCurrentInterval();
+        }
+    }
+
+    private void startInterval() {
+
+        intervalRunning = true;
+
+        intervalDistanceMeters = 0;
+
+        intervalDistanceValue.setText(
+                "0,00"
+        );
+
+        intervalStartTime =
+                System.currentTimeMillis();
+
+        intervalPaceValue.setText("—");
+
+        intervalButton.setText(
+                "ЗАВЕРШИТЬ ИНТЕРВАЛ"
+        );
+
+        intervalsText.setText(
+                "Интервал выполняется..."
+        );
+    }
+
+    private void finishCurrentInterval() {
+
+        if (!intervalRunning) {
+            return;
+        }
+
+        long now =
+                System.currentTimeMillis();
+
+        long intervalTime =
+                Math.max(
+                        1,
+                        (
+                                now -
+                                intervalStartTime
+                        ) / 1000
+                );
+
+        double distanceKm =
+                intervalDistanceMeters / 1000.0;
+
+        if (distanceKm <= 0) {
+
+            intervalRunning = false;
+            intervalDistanceMeters = 0;
+            intervalStartTime = 0;
+
+            intervalDistanceValue.setText(
+                    "0,00"
+            );
+
+            intervalPaceValue.setText("—");
+
+            intervalButton.setText(
+                    "НАЧАТЬ ИНТЕРВАЛ"
+            );
+
+            updateIntervalsText();
+
+            return;
+        }
+
+        double paceSeconds =
+                intervalTime / distanceKm;
+
+        String intervalText =
+                String.format(
+                        Locale.getDefault(),
+                        "Интервал %d: %.2f км   %s мин/км",
+                        savedIntervals.size() + 1,
+                        distanceKm,
+                        formatPace(
+                                paceSeconds
+                        )
+                );
+
+        savedIntervals.add(
+                intervalText
+        );
+
+        intervalRunning = false;
+        intervalDistanceMeters = 0;
+        intervalStartTime = 0;
+
+        intervalDistanceValue.setText(
+                "0,00"
+        );
+
+        intervalPaceValue.setText("—");
+
+        intervalButton.setText(
+                "НАЧАТЬ ИНТЕРВАЛ"
+        );
+
+        updateIntervalsText();
+    }
+
+    private void updateIntervalsText() {
+
+        if (savedIntervals.isEmpty()) {
+
+            if (intervalRunning) {
+
+                intervalsText.setText(
+                        "Интервал выполняется..."
+                );
+
+            } else {
+
+                intervalsText.setText(
+                        "Интервалы ещё не завершены"
+                );
+            }
+
+            return;
+        }
+
+        StringBuilder builder =
+                new StringBuilder();
+
+        for (String interval :
+                savedIntervals) {
+
+            builder.append(interval)
+                    .append("\n");
+        }
+
+        if (intervalRunning) {
+
+            builder.append(
+                    "\nТекущий интервал..."
+            );
+        }
+
+        intervalsText.setText(
+                builder.toString()
+        );
+    }
+
+    // ==========================================
+    // SCREEN
+    // ==========================================
+
+    private void updateScreen() {
+
+        long elapsed;
+
+        if (workoutRunning) {
+
+            elapsed =
+                    Math.max(
+                            0,
+                            (
+                                    System.currentTimeMillis()
+                                            -
+                                    workoutStartTime
+                            ) / 1000
+                    );
+
+            workoutTimeSeconds =
+                    elapsed;
+
+        } else {
+
+            elapsed =
+                    workoutTimeSeconds;
+        }
+
+        timeValue.setText(
+                formatTime(elapsed)
+        );
+
+        double distanceKm =
+                totalDistanceMeters / 1000.0;
+
+        distanceValue.setText(
+                String.format(
+                        Locale.getDefault(),
+                        "%.2f",
+                        distanceKm
+                )
+        );
+
+        // ==========================================
+        // ТЕКУЩЕЕ РАССТОЯНИЕ ИНТЕРВАЛА
+        // ==========================================
+
+        double intervalKm =
+                intervalDistanceMeters / 1000.0;
+
+        intervalDistanceValue.setText(
+                String.format(
+                        Locale.getDefault(),
+                        "%.2f",
+                        intervalKm
+                )
+        );
+
+        if (distanceKm > 0 &&
+                elapsed > 0) {
+
+            double totalPace =
+                    elapsed / distanceKm;
+
+            totalPaceValue.setText(
+                    formatPace(totalPace)
+            );
+
+        } else {
+
+            totalPaceValue.setText("—");
+        }
+
+        double currentPace =
+                calculateCurrentPace();
+
+        if (currentPace > 0) {
+
+            currentPaceValue.setText(
+                    formatPace(currentPace)
+            );
+
+        } else {
+
+            currentPaceValue.setText("—");
+        }
+
+        if (intervalRunning) {
+
+            long intervalSeconds =
+                    Math.max(
+                            1,
+                            (
+                                    System.currentTimeMillis()
+                                            -
+                                    intervalStartTime
+                            ) / 1000
+                    );
+
+            if (intervalKm > 0) {
+
+                double intervalPace =
+                        intervalSeconds /
+                                intervalKm;
+
+                intervalPaceValue.setText(
+                        formatPace(intervalPace)
+                );
+
+            } else {
+
+                intervalPaceValue.setText("—");
+            }
+
+        } else {
+
+            intervalPaceValue.setText("—");
+        }
+    }
+
+    private double calculateCurrentPace() {
+
+        if (recentLocations.size() < 2) {
+            return 0;
+        }
+
+        LocationPoint first =
+                recentLocations.peekFirst();
+
+        LocationPoint last =
+                recentLocations.peekLast();
+
+        if (first == null ||
+                last == null) {
+            return 0;
+        }
+
+        long elapsedMillis =
+                last.timeMillis -
+                        first.timeMillis;
+
+        if (elapsedMillis < 2000) {
+            return 0;
+        }
+
+        double distanceMeters = 0;
+
+        Location previous =
+                first.location;
+
+        for (LocationPoint point :
+                recentLocations) {
+
+            if (point == first) {
+                continue;
+            }
+
+            float delta =
+                    previous.distanceTo(
+                            point.location
+                    );
+
+            if (delta >= 1 &&
+                    delta <= 100) {
+
+                distanceMeters += delta;
+            }
+
+            previous =
+                    point.location;
+        }
+
+        if (distanceMeters < 3) {
+            return 0;
+        }
+
+        double distanceKm =
+                distanceMeters / 1000.0;
+
+        double seconds =
+                elapsedMillis / 1000.0;
+
+        return seconds / distanceKm;
+    }
+
+    private String formatTime(
+            long seconds) {
+
+        long hours =
+                seconds / 3600;
+
+        long minutes =
+                (seconds % 3600) / 60;
+
+        long secs =
+                seconds % 60;
+
+        if (hours > 0) {
+
+            return String.format(
+                    Locale.getDefault(),
+                    "%02d:%02d:%02d",
+                    hours,
+                    minutes,
+                    secs
+            );
+        }
+
+        return String.format(
+                Locale.getDefault(),
+                "%02d:%02d",
+                minutes,
+                secs
+        );
+    }
+
+    private String formatPace(
+            double secondsPerKm) {
+
+        if (secondsPerKm <= 0 ||
+                Double.isNaN(secondsPerKm) ||
+                Double.isInfinite(secondsPerKm)) {
+
+            return "—";
+        }
+
+        int totalSeconds =
+                (int) Math.round(
+                        secondsPerKm
+                );
+
+        int minutes =
+                totalSeconds / 60;
+
+        int seconds =
+                totalSeconds % 60;
+
+        return String.format(
+                Locale.getDefault(),
+                "%02d:%02d",
+                minutes,
+                seconds
+        );
+    }
+
+    // ==========================================
+    // RESULT
+    // ==========================================
+
+    private void openResult(
+            double distanceKm,
+            long timeSeconds,
+            double calories) {
+
+        Intent intent =
+                new Intent(
+                        this,
+                        ResultActivity.class
+                );
+
+        intent.putExtra(
+                "distance",
+                distanceKm
+        );
+
+        intent.putExtra(
+                "time",
+                timeSeconds
+        );
+
+        intent.putExtra(
+                "calories",
+                calories
+        );
+
+        intent.putStringArrayListExtra(
+                "intervals",
+                new ArrayList<>(
+                        savedIntervals
+                )
+        );
+
+        startActivity(intent);
+    }
+
+    // ==========================================
+    // MAP
+    // ==========================================
+
+    private void openMap() {
+
+        try {
+
+           

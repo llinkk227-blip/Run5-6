@@ -12,6 +12,8 @@ import android.location.Location;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.view.Gravity;
 import android.view.WindowManager;
 import android.widget.Button;
@@ -34,37 +36,19 @@ import java.util.Locale;
 
 public class MainActivity extends Activity {
 
-    private static final int BG =
-            Color.rgb(15, 17, 21);
-
-    private static final int CARD =
-            Color.rgb(27, 30, 36);
-
-    private static final int FIELD =
-            Color.rgb(34, 37, 44);
-
-    private static final int ORANGE =
-            Color.rgb(252, 76, 2);
-
-    private static final int WHITE =
-            Color.WHITE;
-
-    private static final int SECONDARY =
-            Color.rgb(167, 173, 183);
-
-    private static final int GREEN =
-            Color.rgb(54, 194, 117);
-
-    private static final int RED =
-            Color.rgb(229, 72, 77);
+    private static final int BG = Color.rgb(15, 17, 21);
+    private static final int CARD = Color.rgb(27, 30, 36);
+    private static final int FIELD = Color.rgb(34, 37, 44);
+    private static final int ORANGE = Color.rgb(252, 76, 2);
+    private static final int WHITE = Color.WHITE;
+    private static final int SECONDARY = Color.rgb(167, 173, 183);
+    private static final int GREEN = Color.rgb(54, 194, 117);
+    private static final int RED = Color.rgb(229, 72, 77);
 
     private static final int LOCATION_PERMISSION_REQUEST = 1001;
 
-    private static final String ROUTE_PREFS =
-            "current_route";
-
-    private static final String ROUTE_POINTS =
-            "points";
+    private static final String ROUTE_PREFS = "current_route";
+    private static final String ROUTE_POINTS = "points";
 
     private FusedLocationProviderClient fusedLocationClient;
     private LocationCallback locationCallback;
@@ -111,12 +95,9 @@ public class MainActivity extends Activity {
 
     private final Runnable timerRunnable =
             new Runnable() {
-
                 @Override
                 public void run() {
-
                     if (workoutRunning) {
-
                         updateScreen();
 
                         timerHandler.postDelayed(
@@ -128,7 +109,6 @@ public class MainActivity extends Activity {
             };
 
     private int dp(float value) {
-
         return (int) (
                 value *
                         getResources()
@@ -228,6 +208,38 @@ public class MainActivity extends Activity {
         }
     }
 
+    // ==========================================
+    // VIBRATION
+    // ==========================================
+
+    private void vibrateShort() {
+
+        Vibrator vibrator =
+                (Vibrator) getSystemService(
+                        VIBRATOR_SERVICE
+                );
+
+        if (vibrator == null ||
+                !vibrator.hasVibrator()) {
+
+            return;
+        }
+
+        if (android.os.Build.VERSION.SDK_INT >= 26) {
+
+            vibrator.vibrate(
+                    VibrationEffect.createOneShot(
+                            250,
+                            VibrationEffect.DEFAULT_AMPLITUDE
+                    )
+            );
+
+        } else {
+
+            vibrator.vibrate(250);
+        }
+    }
+
     private TextView text(
             String value,
             float size,
@@ -241,7 +253,6 @@ public class MainActivity extends Activity {
         view.setTextColor(WHITE);
 
         if (bold) {
-
             view.setTypeface(
                     Typeface.DEFAULT,
                     Typeface.BOLD
@@ -1520,6 +1531,9 @@ public class MainActivity extends Activity {
 
         intervalRunning = true;
 
+        // Вибрация при начале интервала
+        vibrateShort();
+
         intervalDistanceMeters = 0;
 
         intervalDistanceValue.setText(
@@ -1545,6 +1559,9 @@ public class MainActivity extends Activity {
         if (!intervalRunning) {
             return;
         }
+
+        // Вибрация при завершении интервала
+        vibrateShort();
 
         long now =
                 System.currentTimeMillis();

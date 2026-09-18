@@ -13,7 +13,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.Gravity;
-import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.LinearLayout;
@@ -160,7 +159,7 @@ public class MainActivity extends Activity {
 
         super.onCreate(savedInstanceState);
 
-        // Экран не выключается во время работы приложения
+        // Экран не выключается
         getWindow().addFlags(
                 WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
         );
@@ -1704,10 +1703,6 @@ public class MainActivity extends Activity {
                 )
         );
 
-        // ==========================================
-        // ТЕКУЩЕЕ РАССТОЯНИЕ ИНТЕРВАЛА
-        // ==========================================
-
         double intervalKm =
                 intervalDistanceMeters / 1000.0;
 
@@ -1954,4 +1949,44 @@ public class MainActivity extends Activity {
 
         try {
 
-           
+            Intent intent =
+                    new Intent(
+                            this,
+                            Class.forName(
+                                    "com.example.runintervals.MapActivity"
+                            )
+                    );
+
+            startActivity(intent);
+
+        } catch (Exception e) {
+
+            Toast.makeText(
+                    this,
+                    "Не удалось открыть карту",
+                    Toast.LENGTH_SHORT
+            ).show();
+        }
+    }
+
+    // ==========================================
+    // LOCATION POINT
+    // ==========================================
+
+    private static class LocationPoint {
+
+        final Location location;
+        final long timeMillis;
+
+        LocationPoint(
+                Location location,
+                long timeMillis) {
+
+            this.location =
+                    new Location(location);
+
+            this.timeMillis =
+                    timeMillis;
+        }
+    }
+    }
